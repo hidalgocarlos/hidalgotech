@@ -1,0 +1,10 @@
+# Uso: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+# Expone solo puerto 80 y usa traefik.local.yml (sin SSL)
+services:
+  traefik:
+    command: ["--configFile=/traefik.local.yml"]
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.local.yml:/traefik.local.yml:ro

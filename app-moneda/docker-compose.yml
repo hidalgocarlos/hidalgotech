@@ -1,0 +1,21 @@
+services:
+  app-moneda:
+    build: .
+    container_name: app-moneda
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.moneda.rule=Host(`hidalgotech.com`) && PathPrefix(`/moneda`)"
+      - "traefik.http.routers.moneda.entrypoints=websecure"
+      - "traefik.http.routers.moneda.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.moneda-strip.stripprefix.prefixes=/moneda"
+      - "traefik.http.routers.moneda.middlewares=moneda-strip"
+      - "traefik.http.services.moneda.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true

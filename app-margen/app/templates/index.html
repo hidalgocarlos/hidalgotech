@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Calculadora de margen — AppHub{% endblock %}
+{% block content %}
+<header class="sticky top-0 z-10 border-b border-gray-800/80 bg-[#0a0a0b]/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 flex min-h-14 h-14 items-center justify-between gap-3">
+    <a href="/" class="text-base sm:text-lg font-semibold tracking-tight text-white truncate min-w-0">Calculadora de margen</a>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
+      <a href="{{ portal_url or '/' }}" class="text-gray-400 hover:text-white transition-colors py-2 min-h-[44px] inline-flex items-center">Menú principal</a>
+      <span class="text-gray-500 truncate max-w-[80px] sm:max-w-[120px]" title="{{ user }}">{{ user }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-w-0">
+  <div class="mb-8">
+    <h1 class="text-2xl font-semibold tracking-tight text-white">Calcular margen</h1>
+    <p class="mt-1 text-sm text-gray-500">Coste, envío, fee e impuesto → margen neto y %. Todos los montos en COP.</p>
+  </div>
+
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-6 sm:p-8 mb-12 shadow-xl shadow-black/10">
+    <form method="post" action="./calcular" class="space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="coste_producto" class="block text-sm font-medium text-gray-400 mb-2">Coste producto (COP)</label>
+          <input type="number" step="1" min="0" id="coste_producto" name="coste_producto" required
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+            placeholder="0">
+        </div>
+        <div>
+          <label for="envio" class="block text-sm font-medium text-gray-400 mb-2">Envío (COP)</label>
+          <input type="number" step="1" min="0" id="envio" name="envio" value="0"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+            placeholder="0">
+        </div>
+        <div>
+          <label for="fee_plataforma_pct" class="block text-sm font-medium text-gray-400 mb-2">Fee plataforma (%)</label>
+          <input type="number" step="0.1" min="0" id="fee_plataforma_pct" name="fee_plataforma_pct" value="0"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors">
+        </div>
+        <div>
+          <label for="impuesto_pct" class="block text-sm font-medium text-gray-400 mb-2">Impuesto (%)</label>
+          <input type="number" step="0.1" min="0" id="impuesto_pct" name="impuesto_pct" value="0"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors">
+        </div>
+        <div>
+          <label for="precio_venta" class="block text-sm font-medium text-gray-400 mb-2">Precio de venta (COP)</label>
+          <input type="number" step="1" min="0" id="precio_venta" name="precio_venta" required
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+            placeholder="0">
+        </div>
+        <div>
+          <label for="cpa" class="block text-sm font-medium text-gray-400 mb-2">CPA - Coste por adquisición (COP)</label>
+          <input type="number" step="1" min="0" id="cpa" name="cpa" value="0"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-colors"
+            placeholder="0">
+        </div>
+      </div>
+      <button type="submit"
+        class="px-6 py-3 rounded-xl bg-emerald-600 text-white font-medium
+          hover:bg-emerald-500 active:bg-emerald-700
+          focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b]
+          transition-colors">
+        Calcular y guardar
+      </button>
+    </form>
+  </div>
+
+  <h2 class="text-lg font-semibold text-white mb-4">Historial</h2>
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 overflow-hidden">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-gray-800/50 text-gray-400">
+        <tr>
+          <th class="px-4 py-3 font-medium">Coste+Envío</th>
+          <th class="px-4 py-3 font-medium">Precio venta</th>
+          <th class="px-4 py-3 font-medium">Margen neto</th>
+          <th class="px-4 py-3 font-medium">CPA</th>
+          <th class="px-4 py-3 font-medium">Margen después CPA</th>
+          <th class="px-4 py-3 font-medium">Margen %</th>
+          <th class="px-4 py-3 font-medium">Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in historial %}
+        <tr class="border-t border-gray-800/80">
+          <td class="px-4 py-3 text-gray-300">${{ (h.coste_producto + h.envio)|format_co(0) }}</td>
+          <td class="px-4 py-3 text-gray-300">${{ h.precio_venta|format_co(0) }}</td>
+          <td class="px-4 py-3 {{ 'text-red-400' if h.margen_neto < 0 else 'text-emerald-400' }}">${{ h.margen_neto|format_co(0) }}</td>
+          <td class="px-4 py-3 text-gray-400">${{ (h.cpa or 0)|format_co(0) }}</td>
+          <td class="px-4 py-3 {{ 'text-red-400' if (h.margen_neto - (h.cpa or 0)) < 0 else 'text-emerald-400' }}">${{ (h.margen_neto - (h.cpa or 0))|format_co(0) }}</td>
+          <td class="px-4 py-3 {{ 'text-red-400' if h.margen_pct and h.margen_pct < 0 else 'text-emerald-400' }}">{{ (h.margen_pct or 0)|format_co(1) }}%</td>
+          <td class="px-4 py-3 text-gray-500">{{ h.created_at.strftime('%d/%m %H:%M') if h.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not historial %}
+        <tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">Sin cálculos aún.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</main>
+{% endblock %}

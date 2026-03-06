@@ -1,0 +1,18 @@
+services:
+  app-redimensionador:
+    build: .
+    container_name: app-redimensionador
+    restart: always
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.redimensionador.rule=Host(`hidalgotech.com`) && PathPrefix(`/redimensionador`)"
+      - "traefik.http.routers.redimensionador.entrypoints=websecure"
+      - "traefik.http.routers.redimensionador.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.redimensionador-strip.stripprefix.prefixes=/redimensionador"
+      - "traefik.http.routers.redimensionador.middlewares=redimensionador-strip"
+      - "traefik.http.services.redimensionador.loadbalancer.server.port=8000"
+networks:
+  proxy:
+    external: true

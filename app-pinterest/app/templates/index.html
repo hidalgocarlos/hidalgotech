@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Pinterest Downloader — AppHub{% endblock %}
+{% block content %}
+<header class="sticky top-0 z-10 border-b border-gray-800/80 bg-[#0a0a0b]/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 flex min-h-14 h-14 items-center justify-between gap-3">
+    <a href="/" class="text-base sm:text-lg font-semibold tracking-tight text-white truncate min-w-0">Pinterest Downloader</a>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
+      <a href="{{ portal_url or '/' }}" class="text-gray-400 hover:text-white transition-colors py-2 min-h-[44px] inline-flex items-center">Menú principal</a>
+      <span class="text-gray-500 truncate max-w-[80px] sm:max-w-[120px]" title="{{ user }}">{{ user }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-w-0" x-data="pinterestApp()">
+  <div class="mb-8">
+    <h1 class="text-2xl font-semibold tracking-tight text-white">Descargar pins de Pinterest</h1>
+    <p class="mt-1 text-sm text-gray-500">Pega la URL del pin (imagen o video) y descarga</p>
+  </div>
+  <div x-show="previewError" class="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300" x-cloak x-text="previewError" role="alert"></div>
+  <div x-show="downloadError" class="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300" x-cloak x-text="downloadError" role="alert"></div>
+
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-6 mb-8 shadow-xl shadow-black/10">
+    <form @submit.prevent="preview()" class="flex flex-col sm:flex-row gap-3">
+      <input type="url" x-model="url" placeholder="https://www.pinterest.com/pin/... o https://pin.it/..."
+        class="flex-1 px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white placeholder-gray-500 focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-colors"
+        required>
+      <button type="submit" :disabled="loading"
+        class="px-6 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-500 active:bg-red-700 disabled:opacity-50 shrink-0 focus:ring-2 focus:ring-red-600 focus:ring-offset-2 focus:ring-offset-[#0a0a0b] transition-colors">
+        <span x-show="!loading">Vista previa</span>
+        <span x-show="loading">Cargando...</span>
+      </button>
+    </form>
+  </div>
+
+  <div x-show="previewData" class="mb-10 rounded-2xl border border-gray-800/80 bg-gray-900/40 overflow-hidden shadow-xl shadow-black/10" x-cloak>
+    <div class="p-6 flex flex-col md:flex-row gap-6">
+      <template x-if="previewData?.thumbnail">
+        <img :src="previewData.thumbnail" alt="Vista previa" class="w-full max-w-xs md:w-64 max-h-72 rounded-xl object-contain shrink-0 bg-gray-800/50">
+      </template>
+      <div class="flex-1">
+        <h2 class="text-xl font-semibold text-white mb-2" x-text="previewData?.title || 'Sin título'"></h2>
+        <p class="text-gray-400 text-sm mb-1" x-text="'Por: ' + (previewData?.uploader || '—')"></p>
+        <p class="text-gray-400 text-sm mb-1" x-show="previewData?.duration" x-text="'Duración: ' + (previewData?.duration ? Math.floor(previewData.duration/60) + ' min' : '')"></p>
+        <p class="text-gray-400 text-sm mb-4" x-show="previewData?.resolution" x-text="'Resolución: ' + (previewData?.resolution || '')"></p>
+        <button @click="download()" :disabled="downloading"
+          class="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-500 active:bg-emerald-700 disabled:opacity-50 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b] transition-colors">
+          <span x-show="!downloading">Descargar</span>
+          <span x-show="downloading">Descargando...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-lg font-semibold text-white mb-4">Historial reciente</h2>
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 overflow-hidden">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-gray-800/50 text-gray-400">
+        <tr>
+          <th class="px-4 py-3 font-medium">Título</th>
+          <th class="px-4 py-3 font-medium">Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in history %}
+        <tr class="border-t border-gray-800/80 hover:bg-gray-800/30">
+          <td class="px-4 py-3 text-gray-300 truncate max-w-xs" title="{{ d.title or d.url }}">{{ d.title or d.url }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ d.downloaded_at.strftime('%d/%m %H:%M') if d.downloaded_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not history %}
+        <tr><td colspan="2" class="px-4 py-8 text-gray-500 text-center">Aún no hay descargas.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<script>
+function pinterestApp() {
+  return {
+    url: '',
+    loading: false,
+    downloading: false,
+    previewData: null,
+    previewError: null,
+    downloadError: null,
+    async preview() {
+      if (!this.url || !this.url.trim()) return;
+      this.loading = true;
+      this.previewData = null;
+      this.previewError = null;
+      if (window.AppHubProgress) window.AppHubProgress.show();
+      try {
+        const form = new FormData();
+        form.append('url', this.url.trim());
+        const r = await fetch('./preview', { method: 'POST', body: form, credentials: 'include' });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && !data.error) {
+          this.previewData = data;
+        } else {
+          this.previewError = data.error || ('Error ' + r.status);
+        }
+      } catch (e) {
+        this.previewError = 'No se pudo conectar.';
+        console.error(e);
+      }
+      if (window.AppHubProgress) { window.AppHubProgress.set(100); window.AppHubProgress.hide(); }
+      this.loading = false;
+    },
+    async download() {
+      if (!this.url || !this.url.trim()) return;
+      this.downloading = true;
+      this.downloadError = null;
+      if (window.AppHubProgress) window.AppHubProgress.show();
+      try {
+        const form = new FormData();
+        form.append('url', this.url.trim());
+        const r = await fetch('./download', { method: 'POST', body: form, credentials: 'include' });
+        const contentType = r.headers.get('content-type') || '';
+        if (r.ok && (contentType.includes('video') || contentType.includes('image') || contentType.includes('octet-stream'))) {
+          const blob = await r.blob();
+          let filename = 'pin.jpg';
+          const disp = r.headers.get('content-disposition');
+          if (disp) {
+            const m = disp.match(/filename\*?=(?:UTF-8'')?["']?([^"'\s;]+)["']?/i) || disp.match(/filename=["']([^"']+)["']/i) || disp.match(/filename=([^;\s]+)/i);
+            if (m && m[1]) filename = m[1].replace(/^["']|["']$/g, '').trim() || filename;
+          }
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          setTimeout(() => location.reload(), 500);
+        } else {
+          const data = await r.json().catch(() => ({}));
+          this.downloadError = data.error || 'Error al descargar';
+        }
+      } catch (e) {
+        this.downloadError = 'No se pudo conectar.';
+        console.error(e);
+      }
+      if (window.AppHubProgress) { window.AppHubProgress.set(100); window.AppHubProgress.hide(); }
+      this.downloading = false;
+    }
+  };
+}
+</script>
+{% endblock %}

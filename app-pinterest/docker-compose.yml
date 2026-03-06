@@ -1,0 +1,20 @@
+services:
+  app-pinterest:
+    build: .
+    container_name: app-pinterest
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pinterest.rule=Host(`hidalgotech.com`) && PathPrefix(`/pinterest`)"
+      - "traefik.http.routers.pinterest.entrypoints=websecure"
+      - "traefik.http.routers.pinterest.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.pinterest-strip.stripprefix.prefixes=/pinterest"
+      - "traefik.http.routers.pinterest.middlewares=pinterest-strip"
+      - "traefik.http.services.pinterest.loadbalancer.server.port=8000"
+networks:
+  proxy:
+    external: true

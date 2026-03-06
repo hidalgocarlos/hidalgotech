@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}UTM y Short links — AppHub{% endblock %}
+{% block content %}
+<header class="sticky top-0 z-10 border-b border-gray-800/80 bg-[#0a0a0b]/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 flex min-h-14 h-14 items-center justify-between gap-3">
+    <a href="/" class="text-base sm:text-lg font-semibold tracking-tight text-white truncate min-w-0">UTM y Short links</a>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
+      <a href="{{ portal_url or '/' }}" class="text-gray-400 hover:text-white transition-colors py-2 min-h-[44px] inline-flex items-center">Menú principal</a>
+      <span class="text-gray-500 truncate max-w-[80px] sm:max-w-[120px]" title="{{ user }}">{{ user }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-w-0">
+  <section class="mb-12">
+    <h1 class="text-2xl font-semibold tracking-tight text-white mb-1">Construir URL con UTM</h1>
+    <p class="text-sm text-gray-500 mb-6">Añade parámetros de campaña a tu URL base</p>
+    <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-6 sm:p-8 shadow-xl shadow-black/10">
+      <form method="post" action="./utm" class="space-y-5">
+        <div>
+          <label for="base_url" class="block text-sm font-medium text-gray-400 mb-2">URL base</label>
+          <input type="url" id="base_url" name="base_url" placeholder="https://tudominio.com/landing"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div>
+            <label for="utm_source" class="block text-sm font-medium text-gray-400 mb-2">utm_source</label>
+            <input type="text" id="utm_source" name="utm_source" placeholder="google"
+              class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+                focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+          </div>
+          <div>
+            <label for="utm_medium" class="block text-sm font-medium text-gray-400 mb-2">utm_medium</label>
+            <input type="text" id="utm_medium" name="utm_medium" placeholder="cpc"
+              class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+                focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+          </div>
+          <div>
+            <label for="utm_campaign" class="block text-sm font-medium text-gray-400 mb-2">utm_campaign</label>
+            <input type="text" id="utm_campaign" name="utm_campaign" placeholder="black_friday"
+              class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+                focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+          </div>
+          <div>
+            <label for="utm_term" class="block text-sm font-medium text-gray-400 mb-2">utm_term (opcional)</label>
+            <input type="text" id="utm_term" name="utm_term"
+              class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+                focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+          </div>
+          <div class="sm:col-span-2">
+            <label for="utm_content" class="block text-sm font-medium text-gray-400 mb-2">utm_content (opcional)</label>
+            <input type="text" id="utm_content" name="utm_content"
+              class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+                focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+          </div>
+        </div>
+        <button type="submit"
+          class="px-6 py-3 rounded-xl bg-sky-600 text-white font-medium
+            hover:bg-sky-500 active:bg-sky-700
+            focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b]
+            transition-colors">
+          Generar URL
+        </button>
+        {% if utm_result %}
+        <div class="pt-2">
+          <label class="block text-sm font-medium text-gray-400 mb-2">URL con UTM</label>
+          <input type="text" readonly value="{{ utm_result }}"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-sky-300 font-mono text-sm cursor-text"
+            onclick="this.select()">
+        </div>
+        {% endif %}
+      </form>
+    </div>
+  </section>
+
+  <section class="mb-12">
+    <h1 class="text-2xl font-semibold tracking-tight text-white mb-1">Acortar enlace</h1>
+    <p class="text-sm text-gray-500 mb-6">Crea un enlace corto con slug opcional</p>
+    <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-6 sm:p-8 shadow-xl shadow-black/10">
+      <form method="post" action="./shorten" class="space-y-5">
+        <div>
+          <label for="long_url" class="block text-sm font-medium text-gray-400 mb-2">URL larga</label>
+          <input type="url" id="long_url" name="long_url" required placeholder="https://..."
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+        </div>
+        <div>
+          <label for="slug" class="block text-sm font-medium text-gray-400 mb-2">Slug (opcional)</label>
+          <input type="text" id="slug" name="slug" placeholder="mioferta" maxlength="64" pattern="[a-zA-Z0-9_-]+"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition-colors">
+        </div>
+        {% if short_error %}<p class="text-red-400 text-sm">{{ short_error }}</p>{% endif %}
+        {% if short_result %}
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">Enlace corto</label>
+          <input type="text" readonly value="{{ short_result }}"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-sky-300 font-mono text-sm cursor-text"
+            onclick="this.select()">
+        </div>
+        {% endif %}
+        <button type="submit"
+          class="px-6 py-3 rounded-xl bg-sky-600 text-white font-medium
+            hover:bg-sky-500 active:bg-sky-700
+            focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b]
+            transition-colors">
+          Crear enlace corto
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <h2 class="text-lg font-semibold text-white mb-4">Tus enlaces cortos</h2>
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 overflow-hidden">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-gray-800/50 text-gray-400">
+        <tr>
+          <th class="px-4 py-3 font-medium">Slug</th>
+          <th class="px-4 py-3 font-medium">URL destino</th>
+          <th class="px-4 py-3 font-medium">Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for link in links %}
+        <tr class="border-t border-gray-800/80">
+          <td class="px-4 py-3 font-mono text-sky-300">/r/{{ link.slug }}</td>
+          <td class="px-4 py-3 truncate max-w-xs text-gray-300" title="{{ link.long_url }}">{{ link.long_url[:60] }}…</td>
+          <td class="px-4 py-3 text-gray-500">{{ link.created_at.strftime('%d/%m %H:%M') if link.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not links %}
+        <tr><td colspan="3" class="px-4 py-8 text-center text-gray-500">Sin enlaces aún.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</main>
+{% endblock %}

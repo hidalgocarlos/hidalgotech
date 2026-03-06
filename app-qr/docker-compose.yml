@@ -1,0 +1,21 @@
+services:
+  app-qr:
+    build: .
+    container_name: app-qr
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.qr.rule=Host(`hidalgotech.com`) && PathPrefix(`/qr`)"
+      - "traefik.http.routers.qr.entrypoints=websecure"
+      - "traefik.http.routers.qr.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.qr-strip.stripprefix.prefixes=/qr"
+      - "traefik.http.routers.qr.middlewares=qr-strip"
+      - "traefik.http.services.qr.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true

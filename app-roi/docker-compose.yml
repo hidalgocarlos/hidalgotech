@@ -1,0 +1,20 @@
+services:
+  app-roi:
+    build: .
+    container_name: app-roi
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.roi.rule=Host(`hidalgotech.com`) && PathPrefix(`/roi`)"
+      - "traefik.http.routers.roi.entrypoints=websecure"
+      - "traefik.http.routers.roi.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.roi-strip.stripprefix.prefixes=/roi"
+      - "traefik.http.routers.roi.middlewares=roi-strip"
+      - "traefik.http.services.roi.loadbalancer.server.port=8000"
+networks:
+  proxy:
+    external: true

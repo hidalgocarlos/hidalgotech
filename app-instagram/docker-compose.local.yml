@@ -1,0 +1,10 @@
+# Uso con Traefik en modo local: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+services:
+  app-instagram:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.instagram.rule=Host(`localhost`) && PathPrefix(`/instagram`)"
+      - "traefik.http.routers.instagram.entrypoints=web"
+      - "traefik.http.middlewares.instagram-strip.stripprefix.prefixes=/instagram"
+      - "traefik.http.routers.instagram.middlewares=instagram-strip"
+      - "traefik.http.services.instagram.loadbalancer.server.port=8000"

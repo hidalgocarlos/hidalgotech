@@ -1,0 +1,10 @@
+# Uso con Traefik en modo local: docker compose -f docker-compose.yml -f docker-compose.local.yml up -d
+services:
+  app-tiktok:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tiktok.rule=Host(`localhost`) && PathPrefix(`/tiktok`)"
+      - "traefik.http.routers.tiktok.entrypoints=web"
+      - "traefik.http.middlewares.tiktok-strip.stripprefix.prefixes=/tiktok"
+      - "traefik.http.routers.tiktok.middlewares=tiktok-strip"
+      - "traefik.http.services.tiktok.loadbalancer.server.port=8000"

@@ -1,0 +1,36 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Ayuda — ToolBox Pro{% endblock %}
+{% block nav_ayuda_class %}flex items-center gap-3 px-3 py-2.5 rounded-xl bg-accent/20 text-accent hover:bg-accent/30 hover:text-white transition-colors{% endblock %}
+
+{% block dashboard_content %}
+<h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-white font-sans mb-1">Ayuda</h1>
+<p class="text-sm text-slate-500 font-mono mb-6">// Documentación, contacto y preguntas frecuentes.</p>
+
+<!-- Tabs -->
+<nav class="flex flex-wrap gap-2 mb-8" aria-label="Secciones">
+  <a href="/dashboard" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Aplicaciones</a>
+  {% if is_admin %}
+  <a href="/admin" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Administración</a>
+  {% endif %}
+  <a href="/cuenta" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Mi cuenta</a>
+  <a href="/ayuda" class="px-4 py-2 rounded-full bg-brand border border-slate-600 text-white text-sm font-medium">Ayuda</a>
+</nav>
+
+<section class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-6 space-y-6">
+  <div>
+    <h2 class="text-lg font-medium text-white mb-2">Documentación</h2>
+    <p class="text-sm text-slate-400">Guías de uso de las herramientas del ToolBox. Enlaces disponibles en el panel derecho.</p>
+    <a href="#" class="inline-flex items-center gap-2 text-sm text-accent hover:underline mt-2">Ver documentación →</a>
+  </div>
+  <div>
+    <h2 class="text-lg font-medium text-white mb-2">Contacto</h2>
+    <p class="text-sm text-slate-400">¿Necesitas soporte o tienes sugerencias? Escríbenos.</p>
+    <a href="#" class="inline-flex items-center gap-2 text-sm text-accent hover:underline mt-2">Contactar →</a>
+  </div>
+  <div>
+    <h2 class="text-lg font-medium text-white mb-2">Preguntas frecuentes</h2>
+    <p class="text-sm text-slate-400">Respuestas a las dudas más comunes sobre el acceso, las aplicaciones y la administración.</p>
+    <a href="#" class="inline-flex items-center gap-2 text-sm text-accent hover:underline mt-2">Ver FAQ →</a>
+  </div>
+</section>
+{% endblock %}

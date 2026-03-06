@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Costo por unidad — AppHub{% endblock %}
+{% block content %}
+<header class="sticky top-0 z-10 border-b border-gray-800/80 bg-[#0a0a0b]/95 backdrop-blur-sm">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 flex h-14 items-center justify-between">
+    <a href="/" class="text-lg font-semibold tracking-tight text-white">Costo por unidad</a>
+    <span class="text-sm text-gray-500">{{ user }}</span>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 sm:px-6 py-10">
+  <div class="mb-8">
+    <h1 class="text-2xl font-semibold tracking-tight text-white">Calculadora de costo por unidad</h1>
+    <p class="mt-1 text-sm text-gray-500">Coste total del lote (COP) ÷ unidades = costo unitario</p>
+  </div>
+
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-6 sm:p-8 mb-12 shadow-xl shadow-black/10">
+    <form method="post" action="./calcular" class="space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="coste_total" class="block text-sm font-medium text-gray-400 mb-2">Coste total del lote (COP)</label>
+          <input type="number" step="1" min="0" id="coste_total" name="coste_total" required
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            placeholder="0">
+        </div>
+        <div>
+          <label for="unidades" class="block text-sm font-medium text-gray-400 mb-2">Número de unidades</label>
+          <input type="number" min="1" id="unidades" name="unidades" required
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            placeholder="1">
+        </div>
+        <div class="sm:col-span-2">
+          <label for="nota" class="block text-sm font-medium text-gray-400 mb-2">Nota (opcional)</label>
+          <input type="text" id="nota" name="nota" maxlength="255"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            placeholder="Ej. Lote invierno 2025">
+        </div>
+      </div>
+      <button type="submit" class="px-6 py-3 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-500 active:bg-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b] transition-colors">Calcular y guardar</button>
+    </form>
+  </div>
+
+  <h2 class="text-lg font-semibold text-white mb-4">Historial</h2>
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 overflow-hidden">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-gray-800/50 text-gray-400">
+        <tr>
+          <th class="px-4 py-3 font-medium">Coste total</th>
+          <th class="px-4 py-3 font-medium">Unidades</th>
+          <th class="px-4 py-3 font-medium">Costo/unidad</th>
+          <th class="px-4 py-3 font-medium">Nota</th>
+          <th class="px-4 py-3 font-medium">Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in historial %}
+        <tr class="border-t border-gray-800/80">
+          <td class="px-4 py-3 text-gray-300">${{ h.coste_total|format_co(0) }}</td>
+          <td class="px-4 py-3 text-gray-300">{{ h.unidades }}</td>
+          <td class="px-4 py-3 text-emerald-400">${{ h.costo_por_unidad|format_co(0) }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ h.nota or '—' }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ h.created_at.strftime('%d/%m %H:%M') if h.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not historial %}
+        <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Sin cálculos aún.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</main>
+{% endblock %}

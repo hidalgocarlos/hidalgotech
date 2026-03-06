@@ -1,0 +1,25 @@
+# Copiar esta carpeta y cambiar:
+# - PathPrefix: /nueva → /tu-app
+# - router name: nueva → tu-app
+# - container_name y service name
+services:
+  app-nueva:
+    build: .
+    container_name: app-nueva
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nueva.rule=Host(`tudominio.com`) && PathPrefix(`/nueva`)"
+      - "traefik.http.routers.nueva.entrypoints=websecure"
+      - "traefik.http.routers.nueva.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.nueva-strip.stripprefix.prefixes=/nueva"
+      - "traefik.http.routers.nueva.middlewares=nueva-strip"
+      - "traefik.http.services.nueva.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true

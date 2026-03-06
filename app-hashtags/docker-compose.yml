@@ -1,0 +1,20 @@
+services:
+  app-hashtags:
+    build: .
+    container_name: app-hashtags
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.hashtags.rule=Host(`hidalgotech.com`) && PathPrefix(`/hashtags`)"
+      - "traefik.http.routers.hashtags.entrypoints=websecure"
+      - "traefik.http.routers.hashtags.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.hashtags-strip.stripprefix.prefixes=/hashtags"
+      - "traefik.http.routers.hashtags.middlewares=hashtags-strip"
+      - "traefik.http.services.hashtags.loadbalancer.server.port=8000"
+networks:
+  proxy:
+    external: true

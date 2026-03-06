@@ -1,0 +1,21 @@
+services:
+  app-utm:
+    build: .
+    container_name: app-utm
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.utm.rule=Host(`hidalgotech.com`) && PathPrefix(`/utm`)"
+      - "traefik.http.routers.utm.entrypoints=websecure"
+      - "traefik.http.routers.utm.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.utm-strip.stripprefix.prefixes=/utm"
+      - "traefik.http.routers.utm.middlewares=utm-strip"
+      - "traefik.http.services.utm.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true

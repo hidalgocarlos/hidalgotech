@@ -1,0 +1,21 @@
+services:
+  app-instagram:
+    build: .
+    container_name: app-instagram
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.instagram.rule=Host(`hidalgotech.com`) && PathPrefix(`/instagram`)"
+      - "traefik.http.routers.instagram.entrypoints=websecure"
+      - "traefik.http.routers.instagram.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.instagram-strip.stripprefix.prefixes=/instagram"
+      - "traefik.http.routers.instagram.middlewares=instagram-strip"
+      - "traefik.http.services.instagram.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true

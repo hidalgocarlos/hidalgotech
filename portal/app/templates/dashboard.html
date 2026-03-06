@@ -1,0 +1,73 @@
+{% extends "base_dashboard.html" %}
+{% block title %}Panel de control — ToolBox Pro{% endblock %}
+{% block nav_apps_class %}flex items-center gap-3 px-3 py-2.5 rounded-xl bg-accent/20 text-accent hover:bg-accent/30 hover:text-white transition-colors{% endblock %}
+
+{% block dashboard_content %}
+<h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-white font-sans mb-1">Panel de control</h1>
+<p class="text-sm text-slate-500 font-mono mb-6">// Simple · Seguro · Siempre actualizado</p>
+
+<!-- Tabs -->
+<nav class="flex flex-wrap gap-2 mb-8" aria-label="Secciones">
+  <a href="/dashboard" class="px-4 py-2 rounded-full bg-brand border border-slate-600 text-white text-sm font-medium">Aplicaciones</a>
+  {% if is_admin %}
+  <a href="/admin" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Administración</a>
+  {% endif %}
+  <a href="/cuenta" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Mi cuenta</a>
+  <a href="/ayuda" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Ayuda</a>
+</nav>
+
+<!-- 3 cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+  <div class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
+    <h2 class="text-sm font-medium text-slate-400 mb-1">Acceso rápido</h2>
+    <p class="text-2xl font-semibold text-white">{{ apps|length }} herramientas disponibles</p>
+    <p class="text-xs text-slate-500 mt-2 font-mono">TikTok · Instagram · Moneda · QR · UTM · …</p>
+    <a href="#apps" class="mt-4 inline-block text-sm font-medium text-accent hover:text-accent-hover transition-colors">Ver todas las aplicaciones →</a>
+  </div>
+  <div class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
+    <h2 class="text-sm font-medium text-slate-400 mb-1">Estado en vivo</h2>
+    <div class="flex items-center gap-2 mt-1">
+      <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true"></span>
+      <span class="text-white font-medium">Sesión activa</span>
+    </div>
+    <p class="text-xs text-slate-500 mt-2 font-mono" id="local-datetime-inline">—</p>
+  </div>
+  <div class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 flex flex-col">
+    <h2 class="text-sm font-medium text-slate-400 mb-1">Acción rápida</h2>
+    <p class="text-slate-300 text-sm flex-1">Abre el ToolBox y elige una herramienta.</p>
+    <a href="#apps" class="mt-4 inline-flex items-center justify-center py-2.5 rounded-xl bg-accent text-white font-medium hover:bg-accent-hover transition-colors">Ir al ToolBox</a>
+  </div>
+</div>
+
+<!-- Grid de aplicaciones -->
+<h2 id="apps" class="text-lg font-semibold text-white mb-4">Aplicaciones</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  {% for app in apps %}
+  <a href="{{ app.url }}"
+     class="group flex flex-col rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 min-h-[88px] active:scale-[0.99]
+            hover:border-accent/50 hover:bg-slate-800/70 sm:hover:scale-[1.02]
+            focus:outline-none focus:ring-2 focus:ring-accent/30 focus:ring-offset-2 focus:ring-offset-surface
+            transition-all duration-200 ease-out">
+    <span class="text-3xl mb-3" aria-hidden="true">{{ app.icon }}</span>
+    <span class="h-1 w-12 rounded-full bg-gradient-to-r {{ app.color }} mb-3"></span>
+    <h3 class="font-medium text-slate-200 group-hover:text-white transition-colors">{{ app.name }}</h3>
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block dashboard_scripts %}
+<script>
+(function() {
+  var el = document.getElementById('local-datetime-inline');
+  if (el) {
+    function update() {
+      var now = new Date();
+      el.textContent = 'Última actividad: ' + now.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    }
+    update();
+    setInterval(update, 60000);
+  }
+})();
+</script>
+{% endblock %}

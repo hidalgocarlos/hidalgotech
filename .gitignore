@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Datos y BD (no subir a git)
+portal/data/
+**/data/*.db
+**/data/*.sqlite
+**/acme.json
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs y temporales
+*.log
+*.tmp
+.cache/
+
+# Env con secretos (usar .env.example como plantilla)
+.env
+.env.local
+.env.*.local

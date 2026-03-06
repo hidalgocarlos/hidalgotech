@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Hashtags y copy — AppHub{% endblock %}
+{% block content %}
+<header class="sticky top-0 z-10 border-b border-gray-800/80 bg-[#0a0a0b]/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 flex min-h-14 h-14 items-center justify-between gap-3">
+    <a href="/" class="text-base sm:text-lg font-semibold tracking-tight text-white truncate min-w-0">Hashtags y copy</a>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
+      <a href="{{ portal_url or '/' }}" class="text-gray-400 hover:text-white transition-colors py-2 min-h-[44px] inline-flex items-center">Menú principal</a>
+      <span class="text-gray-500 truncate max-w-[80px] sm:max-w-[120px]" title="{{ user }}">{{ user }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-w-0">
+  <div class="mb-8">
+    <h1 class="text-2xl font-semibold tracking-tight text-white">Generador de copy y hashtags</h1>
+    <p class="mt-1 text-sm text-gray-500">Tema o palabra clave → copy sugerido + hashtags por red</p>
+  </div>
+
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-6 sm:p-8 mb-10 shadow-xl shadow-black/10">
+    <form method="post" action="./generar" class="space-y-5">
+      <div>
+        <label for="tema" class="block text-sm font-medium text-gray-400 mb-2">Tema o palabra clave</label>
+        <input type="text" id="tema" name="tema" maxlength="255"
+          class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+          placeholder="Ej. marketing digital, recetas fitness">
+      </div>
+      <div>
+        <label for="red" class="block text-sm font-medium text-gray-400 mb-2">Red social</label>
+        <select id="red" name="red" class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20">
+          {% for r in redes %}
+          <option value="{{ r }}">{{ r|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if error %}<p class="text-red-400 text-sm">{{ error }}</p>{% endif %}
+      <button type="submit" class="px-6 py-3 rounded-xl bg-violet-600 text-white font-medium hover:bg-violet-500 active:bg-violet-700 focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b] transition-colors">Generar</button>
+    </form>
+
+    {% if copy_result %}
+    <div class="mt-6 pt-6 border-t border-gray-800">
+      <label class="block text-sm font-medium text-gray-400 mb-2">Copy</label>
+      <textarea readonly rows="3" class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-gray-200 text-sm resize-none" onclick="this.select()">{{ copy_result }}</textarea>
+      <label class="block text-sm font-medium text-gray-400 mt-4 mb-2">Hashtags</label>
+      <textarea readonly rows="2" class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-violet-300 text-sm resize-none font-mono" onclick="this.select()">{{ hashtags_result }}</textarea>
+    </div>
+    {% endif %}
+  </div>
+
+  <h2 class="text-lg font-semibold text-white mb-4">Historial</h2>
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 overflow-hidden">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-gray-800/50 text-gray-400">
+        <tr>
+          <th class="px-4 py-3 font-medium">Tema</th>
+          <th class="px-4 py-3 font-medium">Red</th>
+          <th class="px-4 py-3 font-medium">Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in historial %}
+        <tr class="border-t border-gray-800/80">
+          <td class="px-4 py-3 text-gray-300">{{ h.tema[:50] }}{% if h.tema|length > 50 %}…{% endif %}</td>
+          <td class="px-4 py-3 text-gray-400">{{ h.red }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ h.created_at.strftime('%d/%m %H:%M') if h.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not historial %}
+        <tr><td colspan="3" class="px-4 py-8 text-center text-gray-500">Sin generaciones aún.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</main>
+{% endblock %}

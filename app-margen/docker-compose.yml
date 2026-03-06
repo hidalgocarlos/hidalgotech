@@ -1,0 +1,21 @@
+services:
+  app-margen:
+    build: .
+    container_name: app-margen
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.margen.rule=Host(`hidalgotech.com`) && PathPrefix(`/margen`)"
+      - "traefik.http.routers.margen.entrypoints=websecure"
+      - "traefik.http.routers.margen.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.margen-strip.stripprefix.prefixes=/margen"
+      - "traefik.http.routers.margen.middlewares=margen-strip"
+      - "traefik.http.services.margen.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true

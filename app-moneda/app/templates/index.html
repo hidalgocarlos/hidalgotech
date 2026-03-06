@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Conversor de moneda — AppHub{% endblock %}
+{% block content %}
+<header class="sticky top-0 z-10 border-b border-gray-800/80 bg-[#0a0a0b]/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 flex min-h-14 h-14 items-center justify-between gap-3">
+    <a href="/" class="text-base sm:text-lg font-semibold tracking-tight text-white truncate min-w-0">Conversor de moneda</a>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
+      <a href="{{ portal_url or '/' }}" class="text-gray-400 hover:text-white transition-colors py-2 min-h-[44px] inline-flex items-center">Menú principal</a>
+      <span class="text-gray-500 truncate max-w-[80px] sm:max-w-[120px]" title="{{ user }}">{{ user }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-w-0">
+  <div class="mb-8">
+    <h1 class="text-2xl font-semibold tracking-tight text-white">Conversor COP y USD</h1>
+    <p class="mt-1 text-sm text-gray-500">Convierte entre COP y USD. Tipo de cambio manual (ej. TRM). Guardamos últimos usados.</p>
+  </div>
+
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-6 sm:p-8 mb-12 shadow-xl shadow-black/10">
+    <form method="post" action="./convertir" class="space-y-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="from_currency" class="block text-sm font-medium text-gray-400 mb-2">De (USD o COP)</label>
+          <input type="text" id="from_currency" name="from_currency" value="USD" maxlength="6"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white uppercase
+              focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-colors">
+        </div>
+        <div>
+          <label for="to_currency" class="block text-sm font-medium text-gray-400 mb-2">A (COP o USD)</label>
+          <input type="text" id="to_currency" name="to_currency" value="COP" maxlength="6"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white uppercase
+              focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-colors">
+        </div>
+        <div>
+          <label for="rate" class="block text-sm font-medium text-gray-400 mb-2">Tipo de cambio del día (1 de = X a)</label>
+          <div class="flex gap-2">
+            <input type="number" step="0.01" id="rate" name="rate" required placeholder="TRM"
+              class="flex-1 px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+                focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-colors">
+            <button type="button" id="btn-trm" title="Cargar TRM del dólar (Colombia)"
+              class="px-4 py-3 rounded-xl bg-gray-700/80 text-gray-300 hover:bg-amber-600 hover:text-white
+                focus:ring-2 focus:ring-amber-500 transition-colors whitespace-nowrap">
+              Cargar TRM
+            </button>
+          </div>
+          <p id="trm-info" class="mt-1 text-xs text-gray-500 hidden"></p>
+        </div>
+        <div>
+          <label for="amount" class="block text-sm font-medium text-gray-400 mb-2">Cantidad</label>
+          <input type="number" step="0.01" id="amount" name="amount" required placeholder="1.000"
+            class="w-full px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-white
+              focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-colors">
+        </div>
+      </div>
+      <button type="submit"
+        class="px-6 py-3 rounded-xl bg-amber-600 text-white font-medium
+          hover:bg-amber-500 active:bg-amber-700
+          focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b]
+          transition-colors">
+        Convertir y guardar
+      </button>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      var rateInput = document.getElementById('rate');
+      var fromInput = document.getElementById('from_currency');
+      var toInput = document.getElementById('to_currency');
+      var btnTrm = document.getElementById('btn-trm');
+      var trmInfo = document.getElementById('trm-info');
+
+      btnTrm.addEventListener('click', function () {
+        btnTrm.disabled = true;
+        trmInfo.classList.add('hidden');
+        trmInfo.textContent = '';
+        fetch('./api/trm', { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.ok && data.trm) {
+              var from = (fromInput.value || 'USD').toUpperCase().trim();
+              var to = (toInput.value || 'COP').toUpperCase().trim();
+              var rate = data.trm;
+              if (from === 'USD' && to === 'COP') {
+                rate = data.trm;
+              } else if (from === 'COP' && to === 'USD') {
+                rate = 1 / data.trm;
+              }
+              rateInput.value = Math.round(rate * 100) / 100;
+              trmInfo.textContent = 'TRM: $' + data.trm.toLocaleString('es-CO') + ' COP (actualizado ' + (data.fecha || 'hoy') + ')';
+              trmInfo.classList.remove('hidden');
+            } else {
+              trmInfo.textContent = 'No se pudo cargar la TRM. ' + (data.error || '');
+              trmInfo.classList.remove('hidden');
+            }
+          })
+          .catch(function () {
+            trmInfo.textContent = 'Error al conectar con la API de la TRM.';
+            trmInfo.classList.remove('hidden');
+          })
+          .finally(function () { btnTrm.disabled = false; });
+      });
+    })();
+  </script>
+
+  <h2 class="text-lg font-semibold text-white mb-4">Historial</h2>
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 overflow-hidden">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-gray-800/50 text-gray-400">
+        <tr>
+          <th class="px-4 py-3 font-medium">De → A</th>
+          <th class="px-4 py-3 font-medium">Cantidad</th>
+          <th class="px-4 py-3 font-medium">Resultado</th>
+          <th class="px-4 py-3 font-medium">Tipo</th>
+          <th class="px-4 py-3 font-medium">Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in historial %}
+        <tr class="border-t border-gray-800/80">
+          <td class="px-4 py-3 text-gray-300">{{ h.from_currency }} → {{ h.to_currency }}</td>
+          <td class="px-4 py-3 text-gray-300">{{ h.amount|format_co(2) }}</td>
+          <td class="px-4 py-3 text-amber-300">{{ h.result|format_co(2) }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ h.rate|format_co(4) }}</td>
+          <td class="px-4 py-3 text-gray-500">{{ h.created_at.strftime('%d/%m %H:%M') if h.created_at else '—' }}</td>
+        </tr>
+        {% endfor %}
+        {% if not historial %}
+        <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Sin conversiones aún.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</main>
+{% endblock %}

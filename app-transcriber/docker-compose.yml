@@ -1,0 +1,20 @@
+services:
+  app-transcriber:
+    build: .
+    container_name: app-transcriber
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.transcriber.rule=Host(`hidalgotech.com`) && PathPrefix(`/transcriber`)"
+      - "traefik.http.routers.transcriber.entrypoints=websecure"
+      - "traefik.http.routers.transcriber.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.transcriber-strip.stripprefix.prefixes=/transcriber"
+      - "traefik.http.routers.transcriber.middlewares=transcriber-strip"
+      - "traefik.http.services.transcriber.loadbalancer.server.port=8000"
+networks:
+  proxy:
+    external: true

@@ -1,0 +1,122 @@
+# Modo local SIN Traefik (evita problemas con Docker socket en Windows).
+# Uso: docker compose -f docker-compose.local.yml up -d --build
+# URLs: 8000 portal | 8001 tiktok | 8002 instagram | 8003 margen | 8004 moneda | 8005 utm | 8006 qr | 8008 hashtags | 8009 redimensionador | 8010 roi | 8011 pinterest | 8012 transcriber
+services:
+  portal:
+    build: ./portal
+    container_name: portal
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./portal/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-tiktok:
+    build: ./app-tiktok
+    container_name: app-tiktok
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./app-tiktok/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-instagram:
+    build: ./app-instagram
+    container_name: app-instagram
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./app-instagram/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-margen:
+    build: ./app-margen
+    container_name: app-margen
+    ports:
+      - "8003:8000"
+    volumes:
+      - ./app-margen/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-moneda:
+    build: ./app-moneda
+    container_name: app-moneda
+    ports:
+      - "8004:8000"
+    volumes:
+      - ./app-moneda/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-utm:
+    build: ./app-utm
+    container_name: app-utm
+    ports:
+      - "8005:8000"
+    volumes:
+      - ./app-utm/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-qr:
+    build: ./app-qr
+    container_name: app-qr
+    ports:
+      - "8006:8000"
+    volumes:
+      - ./app-qr/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-hashtags:
+    build: ./app-hashtags
+    container_name: app-hashtags
+    ports:
+      - "8008:8000"
+    volumes:
+      - ./app-hashtags/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-redimensionador:
+    build: ./app-redimensionador
+    container_name: app-redimensionador
+    ports:
+      - "8009:8000"
+    environment:
+      - APP_ENV=development
+
+  app-roi:
+    build: ./app-roi
+    container_name: app-roi
+    ports:
+      - "8010:8000"
+    volumes:
+      - ./app-roi/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-pinterest:
+    build: ./app-pinterest
+    container_name: app-pinterest
+    ports:
+      - "8011:8000"
+    volumes:
+      - ./app-pinterest/data:/app/data
+    environment:
+      - APP_ENV=development
+
+  app-transcriber:
+    build: ./app-transcriber
+    container_name: app-transcriber
+    ports:
+      - "8012:8000"
+    volumes:
+      - ./app-transcriber/data:/app/data
+    environment:
+      - APP_ENV=development
+      - PORTAL_URL=http://localhost:8000

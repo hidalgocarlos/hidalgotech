@@ -1,0 +1,2 @@
+# La base de datos tiktok.db y la carpeta downloads/ se crean aquí.
+# No borrar esta carpeta: el historial de descargas persiste aquí (volumen Docker).

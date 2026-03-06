@@ -1,0 +1,11 @@
+# Config para pruebas locales: solo HTTP (puerto 80), sin HTTPS ni Let's Encrypt
+api:
+  dashboard: true
+
+entryPoints:
+  web:
+    address: ":80"
+
+providers:
+  docker:
+    exposedByDefault: false

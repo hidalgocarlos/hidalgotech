@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Redimensionador de imágenes — AppHub{% endblock %}
+{% block content %}
+<header class="sticky top-0 z-10 border-b border-gray-800/80 bg-[#0a0a0b]/95 backdrop-blur-sm pt-[env(safe-area-inset-top)]">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 flex min-h-14 h-14 items-center justify-between gap-3">
+    <a href="/" class="text-base sm:text-lg font-semibold tracking-tight text-white truncate min-w-0">Redimensionador</a>
+    <div class="flex items-center gap-2 sm:gap-4 shrink-0 text-xs sm:text-sm">
+      <a href="{{ portal_url or '/' }}" class="text-gray-400 hover:text-white transition-colors py-2 min-h-[44px] inline-flex items-center">Menú principal</a>
+      <span class="text-gray-500 truncate max-w-[80px] sm:max-w-[120px]" title="{{ user }}">{{ user }}</span>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 min-w-0" x-data="redimensionador()">
+  <div class="mb-6 sm:mb-8">
+    <h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-white">Redimensionar imágenes</h1>
+    <p class="mt-1 text-sm text-gray-500">Sube una imagen y descarga versiones para cada red social (ZIP)</p>
+  </div>
+
+  <div class="rounded-2xl border border-gray-800/80 bg-gray-900/40 p-4 sm:p-8 shadow-xl shadow-black/10">
+    <form x-ref="resizeForm" action="./redimensionar" method="post" enctype="multipart/form-data" @submit.prevent="submit()">
+      <input type="hidden" name="presets" :value="presets.join(',')">
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-400 mb-2">Imagen (JPG, PNG, WebP)</label>
+        <input type="file" name="file" accept="image/jpeg,image/png,image/webp" required
+          class="w-full min-h-[44px] px-4 py-3 rounded-xl bg-gray-800/80 border border-gray-700/80 text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-cyan-600 file:text-white file:min-h-[36px]">
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-400 mb-3">Tamaños a generar (por red)</label>
+        <div class="space-y-4 sm:space-y-6 max-h-[45vh] sm:max-h-[50vh] overflow-y-auto overflow-x-hidden pr-1 sm:pr-2" style="-webkit-overflow-scrolling: touch;">
+          {% for label, items in presets_by_group %}
+          <div class="min-w-0">
+            <p class="text-xs font-medium text-cyan-400/90 uppercase tracking-wider mb-2">{{ label }}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {% for p in items %}
+              <label class="flex items-center gap-2 text-sm cursor-pointer min-h-[44px] py-1">
+                <input type="checkbox" value="{{ p.id }}" x-model="presets" class="rounded border-gray-600 bg-gray-800 text-cyan-500 w-5 h-5 shrink-0">
+                <span class="text-gray-300 truncate min-w-0">{{ p.name }}</span>
+                <span class="text-gray-500 text-xs shrink-0">({{ p.w }}×{{ p.h }})</span>
+              </label>
+              {% endfor %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        <p class="mt-2 text-xs text-gray-500">Selecciona los formatos que quieras; se generará una imagen por cada uno en el ZIP.</p>
+      </div>
+      <p x-show="error" x-text="error" class="text-red-400 text-sm mb-4" x-cloak></p>
+      <button type="submit" :disabled="loading"
+        class="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-xl bg-cyan-600 text-white font-medium hover:bg-cyan-500 active:bg-cyan-700 disabled:opacity-50 focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0b] transition-colors">
+        <span x-show="!loading">Generar y descargar ZIP</span>
+        <span x-show="loading" class="flex items-center gap-2"><span x-text="progressPct + '%'"></span> Generando…</span>
+      </button>
+    </form>
+  </div>
+</main>
+<script>
+function redimensionador() {
+  var progressWrap = document.getElementById('global-progress-wrap');
+  var progressBar = document.getElementById('global-progress-bar');
+  var progressPctEl = document.getElementById('global-progress-pct');
+  function setProgress(pct, showPct) {
+    pct = Math.min(100, Math.max(0, pct));
+    if (progressBar) progressBar.style.width = pct + '%';
+    if (progressPctEl) { progressPctEl.textContent = Math.round(pct) + '%'; progressPctEl.style.display = showPct ? 'block' : 'none'; }
+    if (progressWrap) progressWrap.style.display = pct > 0 && pct < 100 ? 'block' : 'none';
+  }
+  return {
+    loading: false,
+    error: null,
+    progressPct: 0,
+    presets: ['ig_post', 'ig_story', 'yt_thumb', 'pinterest_pin', 'tiktok_video'],
+    submit() {
+      var self = this;
+      var form = self.$refs.resizeForm || document.querySelector('form[action*="redimensionar"]');
+      if (!form || !(form instanceof HTMLFormElement)) {
+        self.error = 'No se pudo leer el formulario.';
+        return;
+      }
+      self.loading = true;
+      self.error = null;
+      self.progressPct = 0;
+      setProgress(0, true);
+      var fd = new FormData(form);
+      var xhr = new XMLHttpRequest();
+      var processingInterval = null;
+      function stopInterval() {
+        if (processingInterval) { clearInterval(processingInterval); processingInterval = null; }
+      }
+      xhr.open('POST', form.action);
+      xhr.withCredentials = true;
+      xhr.responseType = 'blob';
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          var pct = Math.round((e.loaded / e.total) * 40);
+          if (pct > self.progressPct) { self.progressPct = pct; setProgress(pct, true); }
+        }
+      };
+      xhr.onload = function () {
+        stopInterval();
+        setProgress(95, true);
+        var blob = xhr.response;
+        if (xhr.status === 200 && blob && blob.size > 0) {
+          var contentType = (xhr.getResponseHeader('content-type') || '').toLowerCase();
+          var isZip = contentType.indexOf('zip') !== -1;
+          if (isZip) {
+            setProgress(100, true);
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'redimensionadas.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+          } else {
+            var reader = new FileReader();
+            reader.onload = function () {
+              try {
+                var data = JSON.parse(reader.result);
+                self.error = data.error || 'Error al generar';
+              } catch (e) { self.error = 'Error al generar'; }
+              setProgress(0, false);
+              self.loading = false;
+            };
+            reader.readAsText(blob);
+            return;
+          }
+        } else if (xhr.status === 401 || xhr.status === 403) {
+          self.error = 'Sesión expirada. Vuelve al menú principal e inicia sesión.';
+          setProgress(0, false);
+        } else if (xhr.status >= 400 && blob && blob.size > 0) {
+          var reader = new FileReader();
+          reader.onload = function () {
+            try {
+              var data = JSON.parse(reader.result);
+              self.error = data.error || 'Error ' + xhr.status;
+            } catch (e) { self.error = 'Error ' + xhr.status; }
+            setProgress(0, false);
+            self.loading = false;
+          };
+          reader.readAsText(blob);
+          return;
+        } else {
+          self.error = 'Error de conexión (código ' + xhr.status + '). Comprueba que la imagen sea JPG, PNG o WebP.';
+          setProgress(0, false);
+        }
+        self.loading = false;
+        setTimeout(function () { setProgress(0, false); }, 400);
+      };
+      xhr.onerror = function () {
+        stopInterval();
+        self.error = 'Error de conexión';
+        setProgress(0, false);
+        self.loading = false;
+      };
+      xhr.send(fd);
+      // Avanzar barra desde el inicio (por si upload.onprogress no dispara o es muy rápido)
+      processingInterval = setInterval(function () {
+        if (self.progressPct >= 90) return;
+        self.progressPct = Math.min(90, self.progressPct + 6);
+        setProgress(self.progressPct, true);
+      }, 180);
+    }
+  };
+}
+</script>
+{% endblock %}

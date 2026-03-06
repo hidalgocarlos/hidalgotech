@@ -1,0 +1,26 @@
+# Copy this folder for a new app. Then:
+# 1. Replace "template" with your app name in router/middleware/service names and PathPrefix
+# 2. Update app/main.py root_path to match PathPrefix (e.g. root_path="/myapp")
+# 3. Add the app to portal/app/main.py dashboard apps list
+# 4. docker compose up -d
+services:
+  app-template:
+    build: .
+    container_name: app-template
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.template.rule=Host(`hidalgotech.com`) && PathPrefix(`/template`)"
+      - "traefik.http.routers.template.entrypoints=websecure"
+      - "traefik.http.routers.template.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.template-strip.stripprefix.prefixes=/template"
+      - "traefik.http.routers.template.middlewares=template-strip"
+      - "traefik.http.services.template.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true

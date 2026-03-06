@@ -1,0 +1,20 @@
+services:
+  app-costo-unidad:
+    build: .
+    container_name: app-costo-unidad
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.costo-unidad.rule=Host(`hidalgotech.com`) && PathPrefix(`/costo-unidad`)"
+      - "traefik.http.routers.costo-unidad.entrypoints=websecure"
+      - "traefik.http.routers.costo-unidad.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.costo-unidad-strip.stripprefix.prefixes=/costo-unidad"
+      - "traefik.http.routers.costo-unidad.middlewares=costo-unidad-strip"
+      - "traefik.http.services.costo-unidad.loadbalancer.server.port=8000"
+networks:
+  proxy:
+    external: true

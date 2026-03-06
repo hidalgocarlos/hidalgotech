@@ -1,0 +1,21 @@
+services:
+  app-tiktok:
+    build: .
+    container_name: app-tiktok
+    restart: always
+    volumes:
+      - ./data:/app/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tiktok.rule=Host(`hidalgotech.com`) && PathPrefix(`/tiktok`)"
+      - "traefik.http.routers.tiktok.entrypoints=websecure"
+      - "traefik.http.routers.tiktok.tls.certresolver=letsencrypt"
+      - "traefik.http.middlewares.tiktok-strip.stripprefix.prefixes=/tiktok"
+      - "traefik.http.routers.tiktok.middlewares=tiktok-strip"
+      - "traefik.http.services.tiktok.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true
