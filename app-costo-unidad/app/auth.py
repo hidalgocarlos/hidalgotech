@@ -10,17 +10,12 @@ ALGORITHM = "HS256"
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def _portal_login_url() -> str:
-    url = (os.environ.get("PORTAL_URL") or "/").strip().rstrip("/")
-    return (url + "/") if url and url != "/" else "/"
-
-
 async def verify_token(request: Request):
     token = request.cookies.get("access_token")
     if not token:
-        raise HTTPException(status_code=302, headers={"Location": _portal_login_url()})
+        raise HTTPException(status_code=302, headers={"Location": f"/login?redirect_uri={request.url.path}"})
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload.get("sub")
     except JWTError:
-        raise HTTPException(status_code=302, headers={"Location": _portal_login_url()})
+        raise HTTPException(status_code=302, headers={"Location": f"/login?redirect_uri={request.url.path}"})

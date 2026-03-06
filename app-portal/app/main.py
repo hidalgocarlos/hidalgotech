@@ -49,6 +49,24 @@ def _get_user(request: Request) -> str | None:
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
+    user = _get_user(request)
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "user": "Visitante", "apps": APPS}
+        "dashboard.html", {"request": request, "user": user or "Visitante", "apps": APPS}
     )
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    redirect_uri = request.query_params.get("redirect_uri", "/")
+    return templates.TemplateResponse("login.html", {"request": request, "redirect_uri": redirect_uri})
+
+
+@app.post("/login")
+async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+    redirect_uri = request.query_params.get("redirect_uri", "/")
+    if username == ADMIN_USER and password == ADMIN_PASSWORD:
+        token = _create_token(ADMIN_USER)
+        response = RedirectResponse(url=redirect_uri, status_code=302)
+        response.set_cookie(key="access_token", value=token, httponly=True, samesite="Lax")
+        return response
+    return templates.TemplateResponse("login.html", {"request": request, "error": "Usuario o contraseña incorrectos", "redirect_uri": redirect_uri})
