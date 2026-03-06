@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToolBox Pro — HidalgoTech</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠</text></svg>">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#020617] text-white min-h-screen">
+  <header class="sticky top-0 z-20 flex items-center justify-between h-14 px-4 sm:px-6 bg-[#020617]/95 backdrop-blur border-b border-slate-800/80">
+    <span class="font-semibold text-white">ToolBox Pro <span class="text-green-400 text-sm font-normal">by HidalgoTech</span></span>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+    <h1 class="text-lg font-semibold text-slate-300 mb-6">Herramientas</h1>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for tool in apps %}
+      <a href="{{ tool.path }}"
+        class="block rounded-2xl border border-slate-800/80 bg-slate-900/40 p-5
+          hover:bg-slate-800/40 hover:border-slate-700/80 transition-all group">
+        <h2 class="font-semibold text-white group-hover:text-blue-400 transition-colors">{{ tool.name }}</h2>
+        <p class="text-sm text-slate-500 mt-1">{{ tool.desc }}</p>
+      </a>
+      {% endfor %}
+    </div>
+  </main>
+</body>
+</html>

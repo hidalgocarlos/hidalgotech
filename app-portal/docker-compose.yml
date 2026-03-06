@@ -1,0 +1,22 @@
+services:
+  app-portal:
+    build: .
+    container_name: app-portal
+    restart: always
+    env_file:
+      - ../.env
+    environment:
+      - APP_ENV=production
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal.rule=Host(`hidalgotech.com`)"
+      - "traefik.http.routers.portal.entrypoints=websecure"
+      - "traefik.http.routers.portal.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.portal.service=portal"
+      - "traefik.http.services.portal.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true
