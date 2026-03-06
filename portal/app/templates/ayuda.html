@@ -8,12 +8,12 @@
 
 <!-- Tabs -->
 <nav class="flex flex-wrap gap-2 mb-8" aria-label="Secciones">
-  <a href="/dashboard" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Aplicaciones</a>
+  <a href="{{ portal_path }}/dashboard" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Aplicaciones</a>
   {% if is_admin %}
-  <a href="/admin" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Administración</a>
+  <a href="{{ portal_path }}/admin" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Administración</a>
   {% endif %}
-  <a href="/cuenta" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Mi cuenta</a>
-  <a href="/ayuda" class="px-4 py-2 rounded-full bg-brand border border-slate-600 text-white text-sm font-medium">Ayuda</a>
+  <a href="{{ portal_path }}/cuenta" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Mi cuenta</a>
+  <a href="{{ portal_path }}/ayuda" class="px-4 py-2 rounded-full bg-brand border border-slate-600 text-white text-sm font-medium">Ayuda</a>
 </nav>
 
 <section class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-6 space-y-6">

@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
 from .auth import create_token, verify_password, verify_token, hash_password
 from .dao.user_dao import UserDAO
+from .security import generate_csrf_token, verify_csrf, rate_limit_check
 
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 app = FastAPI()
@@ -16,9 +17,51 @@ IS_DEV = os.environ.get("APP_ENV") == "development"
 templates = Jinja2Templates(directory="app/templates")
 app.mount("/static", StaticFiles(directory=os.path.join(_APP_DIR, "static")), name="static")
 
+# Ruta base del portal (ej. "" o "/portal") para cuando Traefik monta el portal en un subpath
+# Se obtiene de PORTAL_URL: https://dominio.com/portal/ -> /portal
+_portal_url = (os.environ.get("PORTAL_URL") or "").strip().rstrip("/")
+PORTAL_PATH = ""
+if _portal_url:
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(_portal_url)
+        path = (parsed.path or "").strip()
+        if path and path != "/":
+            PORTAL_PATH = path.rstrip("/")
+    except Exception:
+        pass
+templates.env.globals["portal_path"] = PORTAL_PATH
+
+def _url(path: str) -> str:
+    """Prefija path con PORTAL_PATH para redirects y Location."""
+    path = (path or "/").strip()
+    if not path.startswith("/"):
+        path = "/" + path
+    return (PORTAL_PATH + path) if PORTAL_PATH else path
+
+# Longitud mínima de contraseña (RNFS)
+PASSWORD_MIN_LENGTH = 8
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Limita peticiones por IP para mitigar abuso (no aplica a /static)."""
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        if path.startswith("/static/"):
+            return await call_next(request)
+        ip = _client_ip(request)
+        if not rate_limit_check(ip):
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Demasiadas peticiones. Intenta más tarde."},
+                headers={"Retry-After": "300"},
+            )
+        return await call_next(request)
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Añade cabeceras de seguridad OWASP (clickjacking, MIME sniffing, etc.)."""
+    """Cabeceras OWASP: clickjacking, MIME sniffing, CSP, HSTS, cache sensible."""
 
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
@@ -26,10 +69,30 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        # CSP: permitir CDN usados (Tailwind, Alpine, fuentes) y evitar XSS
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' https://cdn.tailwindcss.com https://cdn.jsdelivr.net 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none'; "
+            "base-uri 'self'"
+        )
+        proto = (request.headers.get("x-forwarded-proto") or "").strip().lower()
+        if proto == "https" and not IS_DEV:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        # No cachear páginas sensibles ni API
+        path = request.url.path
+        if path.startswith(("/dashboard", "/admin", "/cuenta", "/api", "/ayuda")):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
         return response
 
 
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware)
 
 
 async def get_current_user(request: Request, user=Depends(verify_token)):
@@ -37,7 +100,7 @@ async def get_current_user(request: Request, user=Depends(verify_token)):
     dao = UserDAO()
     u = dao.get_by_username(user)
     if not u:
-        raise HTTPException(status_code=302, headers={"Location": "/"})
+        raise HTTPException(status_code=302, headers={"Location": _url("/")})
     return u
 
 
@@ -59,6 +122,9 @@ async def http_exception_handler(request: Request, exc: HTTPException):
             {"request": request},
             status_code=403,
         )
+    if exc.status_code == 302:
+        location = (exc.headers or {}).get("Location", _url("/"))
+        return RedirectResponse(url=location, status_code=302)
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 # Cache para TRM y BTC (segundos)
@@ -71,8 +137,9 @@ LOGIN_MAX_ATTEMPTS = 5
 LOGIN_LOCKOUT_SEC = 900  # 15 minutos
 
 # Usuario y contraseña por defecto (cámbialos en producción)
-DEFAULT_ADMIN_USER = os.environ.get("DEFAULT_ADMIN_USER", "admin")
-DEFAULT_ADMIN_PASSWORD = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin123")
+# .strip() previene problemas con \r de archivos .env con CRLF (Windows)
+DEFAULT_ADMIN_USER = os.environ.get("DEFAULT_ADMIN_USER", "admin").strip()
+DEFAULT_ADMIN_PASSWORD = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin123").strip()
 
 
 @app.on_event("startup")
@@ -91,7 +158,10 @@ def ensure_default_admin():
 
 @app.get("/", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+    csrf_token = generate_csrf_token()
+    response = templates.TemplateResponse("login.html", {"request": request, "csrf_token": csrf_token})
+    response.set_cookie("csrf_token", csrf_token, httponly=True, samesite="lax", path="/", max_age=3600)
+    return response
 
 
 def _client_ip(request: Request) -> str:
@@ -103,7 +173,18 @@ def _client_ip(request: Request) -> str:
 
 
 @app.post("/login")
-async def login(request: Request, username: str = Form(...), password: str = Form(...)):
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    csrf_token: str | None = Form(None),
+):
+    if not verify_csrf(request.cookies.get("csrf_token"), csrf_token):
+        return templates.TemplateResponse(
+            "login.html",
+            {"request": request, "error": "Sesión expirada o token inválido. Recarga la página e intenta de nuevo."},
+            status_code=403,
+        )
     ip = _client_ip(request)
     now = time.time()
     # Limpiar intentos antiguos
@@ -145,7 +226,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
     if ip in _login_attempts:
         del _login_attempts[ip]
     token = create_token({"sub": username})
-    response = RedirectResponse("/dashboard", status_code=302)
+    response = RedirectResponse(_url("/dashboard"), status_code=302)
     # Secure=True solo si el cliente usó HTTPS (X-Forwarded-Proto detrás de Traefik); si no, la cookie no se envía y hay 302 en /dashboard
     proto = (request.headers.get("x-forwarded-proto") or "").strip().lower()
     secure_cookie = proto == "https" if proto else (not IS_DEV)
@@ -200,7 +281,7 @@ async def dashboard(request: Request, user=Depends(get_current_user)):
 
 @app.get("/logout")
 async def logout():
-    response = RedirectResponse("/", status_code=302)
+    response = RedirectResponse(_url("/"), status_code=302)
     response.delete_cookie("access_token", path="/")
     return response
 
@@ -212,7 +293,8 @@ async def cuenta(
     password_updated: str | None = None,
     password_error: str | None = None,
 ):
-    return templates.TemplateResponse(
+    csrf_token = generate_csrf_token()
+    response = templates.TemplateResponse(
         "cuenta.html",
         {
             "request": request,
@@ -220,8 +302,11 @@ async def cuenta(
             "is_admin": getattr(user, "role", None) == "admin",
             "password_updated": password_updated,
             "password_error": password_error,
+            "csrf_token": csrf_token,
         },
     )
+    response.set_cookie("csrf_token", csrf_token, httponly=True, samesite="lax", path="/", max_age=3600)
+    return response
 
 
 @app.post("/cuenta/password")
@@ -230,17 +315,22 @@ async def cuenta_change_password(
     user=Depends(get_current_user),
     current_password: str = Form(...),
     new_password: str = Form(...),
+    csrf_token: str | None = Form(None),
 ):
     """Cambiar contraseña del usuario actual. Redirige a /cuenta con mensaje."""
+    if not verify_csrf(request.cookies.get("csrf_token"), csrf_token):
+        return RedirectResponse(_url("/cuenta?password_error=csrf"), status_code=302)
     current_password = (current_password or "").strip()
     new_password = (new_password or "").strip()
     if not new_password:
-        return RedirectResponse("/cuenta?password_error=empty", status_code=302)
+        return RedirectResponse(_url("/cuenta?password_error=empty"), status_code=302)
+    if len(new_password) < PASSWORD_MIN_LENGTH:
+        return RedirectResponse(_url("/cuenta?password_error=length"), status_code=302)
     if not verify_password(current_password, user.hashed_password):
-        return RedirectResponse("/cuenta?password_error=current", status_code=302)
+        return RedirectResponse(_url("/cuenta?password_error=current"), status_code=302)
     dao = UserDAO()
     dao.update_password(user.username, hash_password(new_password))
-    return RedirectResponse("/cuenta?password_updated=1", status_code=302)
+    return RedirectResponse(_url("/cuenta?password_updated=1"), status_code=302)
 
 
 @app.get("/ayuda", response_class=HTMLResponse)
@@ -259,7 +349,8 @@ async def admin_panel(request: Request, user=Depends(require_admin)):
     password_reset_error = request.query_params.get("password_reset_error")
     deleted = request.query_params.get("deleted")
     delete_error = request.query_params.get("delete_error")
-    return templates.TemplateResponse(
+    csrf_token = generate_csrf_token()
+    response = templates.TemplateResponse(
         "admin.html",
         {
             "request": request,
@@ -270,8 +361,11 @@ async def admin_panel(request: Request, user=Depends(require_admin)):
             "password_reset_error": password_reset_error,
             "deleted": deleted,
             "delete_error": delete_error,
+            "csrf_token": csrf_token,
         },
     )
+    response.set_cookie("csrf_token", csrf_token, httponly=True, samesite="lax", path="/", max_age=3600)
+    return response
 
 
 @app.post("/admin/users")
@@ -280,8 +374,11 @@ async def admin_create_user(
     username: str = Form(...),
     password: str = Form(...),
     role: str = Form("operador"),
+    csrf_token: str | None = Form(None),
     admin=Depends(require_admin),
 ):
+    if not verify_csrf(request.cookies.get("csrf_token"), csrf_token):
+        raise HTTPException(status_code=403, detail="Token de seguridad inválido.")
     dao = UserDAO()
     username = (username or "").strip()
     password = (password or "").strip()
@@ -295,8 +392,13 @@ async def admin_create_user(
             "admin.html",
             {"request": request, "user": admin, "users": dao.list_users(), "error": "El usuario ya existe.", "is_admin": True},
         )
+    if len(password) < PASSWORD_MIN_LENGTH:
+        return templates.TemplateResponse(
+            "admin.html",
+            {"request": request, "user": admin, "users": dao.list_users(), "error": f"La contraseña debe tener al menos {PASSWORD_MIN_LENGTH} caracteres.", "is_admin": True},
+        )
     dao.create_user(username, hash_password(password), role=role if role in ("admin", "operador") else "operador")
-    return RedirectResponse("/admin", status_code=302)
+    return RedirectResponse(_url("/admin"), status_code=302)
 
 
 @app.post("/admin/users/{username}/role")
@@ -304,11 +406,14 @@ async def admin_update_role(
     request: Request,
     username: str,
     role: str = Form(...),
+    csrf_token: str | None = Form(None),
     admin=Depends(require_admin),
 ):
+    if not verify_csrf(request.cookies.get("csrf_token"), csrf_token):
+        raise HTTPException(status_code=403, detail="Token de seguridad inválido.")
     dao = UserDAO()
     dao.update_role(username, role)
-    return RedirectResponse("/admin", status_code=302)
+    return RedirectResponse(_url("/admin"), status_code=302)
 
 
 @app.post("/admin/users/{username}/password")
@@ -316,25 +421,33 @@ async def admin_reset_password(
     request: Request,
     username: str,
     password: str = Form(..., alias="new_password"),
+    csrf_token: str | None = Form(None),
     admin=Depends(require_admin),
 ):
     """Resetear contraseña de un usuario. Los datos se guardan en la BD (portal.db)."""
+    if not verify_csrf(request.cookies.get("csrf_token"), csrf_token):
+        return RedirectResponse(_url("/admin?password_reset_error=csrf"), status_code=302)
     password = (password or "").strip()
     if not password:
         return RedirectResponse(
-            f"/admin?password_reset_error=empty",
+            _url("/admin?password_reset_error=empty"),
+            status_code=302,
+        )
+    if len(password) < PASSWORD_MIN_LENGTH:
+        return RedirectResponse(
+            _url("/admin?password_reset_error=length"),
             status_code=302,
         )
     dao = UserDAO()
     u = dao.get_by_username(username)
     if not u:
         return RedirectResponse(
-            f"/admin?password_reset_error=user",
+            _url("/admin?password_reset_error=user"),
             status_code=302,
         )
     dao.update_password(username, hash_password(password))
     return RedirectResponse(
-        f"/admin?password_reset={username}",
+        _url(f"/admin?password_reset={username}"),
         status_code=302,
     )
 
@@ -343,20 +456,23 @@ async def admin_reset_password(
 async def admin_delete_user(
     request: Request,
     username: str,
+    csrf_token: str | None = Form(None),
     admin=Depends(require_admin),
 ):
     """Elimina un usuario. No se puede borrar el usuario admin por defecto si es el último admin."""
+    if not verify_csrf(request.cookies.get("csrf_token"), csrf_token):
+        raise HTTPException(status_code=403, detail="Token de seguridad inválido.")
     dao = UserDAO()
     users = dao.list_users()
     admins = [u for u in users if getattr(u, "role", None) == "admin"]
     if len(admins) <= 1 and getattr(dao.get_by_username(username), "role", None) == "admin":
         return RedirectResponse(
-            "/admin?delete_error=last_admin",
+            _url("/admin?delete_error=last_admin"),
             status_code=302,
         )
     if dao.delete_user(username):
-        return RedirectResponse("/admin?deleted=" + username, status_code=302)
-    return RedirectResponse("/admin?delete_error=user", status_code=302)
+        return RedirectResponse(_url("/admin?deleted=" + username), status_code=302)
+    return RedirectResponse(_url("/admin?delete_error=user"), status_code=302)
 
 
 @app.get("/api/rates")

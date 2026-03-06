@@ -9,24 +9,38 @@ from .dao.costo_dao import CostoDAO
 
 app = FastAPI(root_path="/costo-unidad")
 templates = Jinja2Templates(directory="app/templates")
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
+# The prefix for all portal URLs, derived from environment variable.
+# Ensures no trailing slash, e.g., "http://host" or "" for root.
+portal_prefix = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
+
+# Make URLs available in templates.
+# Ensures a single trailing slash, e.g., "http://host/" or "/"
+templates.env.globals["portal_url"] = f"{portal_prefix}/"
+templates.env.globals["favicon_url"] = f"{portal_prefix}/static/favicon.png"
 
 
-def _format_co(value, decimals=2):
+def format_number_co_style(value, decimals=2):
+    """
+    Formats a number in Colombian style:
+    - Dot (.) for thousands separator.
+    - Comma (,) for decimal separator.
+    - Returns '—' if the value is not a valid number.
+    """
     if value is None:
         return "—"
     try:
         n = float(value)
     except (TypeError, ValueError):
         return "—"
+
+    # Standard formatting with comma for thousands, dot for decimals.
     s = f"{n:,.{decimals}f}"
+    # Swap separators for Colombian style (e.g., 1,234.56 -> 1.234,56)
     s = s.replace(",", "X").replace(".", ",").replace("X", ".")
     return s
 
 
-templates.env.filters["format_co"] = _format_co
+templates.env.filters["format_co"] = format_number_co_style
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -47,12 +61,17 @@ async def calcular(
     coste_total = max(0, coste_total)
     unidades = max(1, int(unidades))
     costo_por_unidad = coste_total / unidades
+
+    # Clean up the note: strip whitespace and treat empty strings as NULL
+    cleaned_nota = nota.strip() if nota else ""
+    nota_for_db = cleaned_nota if cleaned_nota else None
+
     dao = CostoDAO()
     dao.save(
         coste_total=coste_total,
         unidades=unidades,
         costo_por_unidad=costo_por_unidad,
-        nota=(nota or "").strip() or None,
+        nota=nota_for_db,
         username=user,
     )
     return RedirectResponse(url=".", status_code=302)

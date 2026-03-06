@@ -23,7 +23,8 @@
       </div>
       {% endif %}
 
-      <form method="post" action="/login" class="space-y-6">
+      <form method="post" action="{{ portal_path }}/login" class="space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <div>
           <label for="username" class="block text-sm font-medium text-slate-400 mb-2">Usuario</label>
           <input type="text" id="username" name="username" required autocomplete="username"

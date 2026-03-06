@@ -8,10 +8,10 @@
 
 <!-- Tabs -->
 <nav class="flex flex-wrap gap-2 mb-8" aria-label="Secciones">
-  <a href="/dashboard" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Aplicaciones</a>
-  <a href="/admin" class="px-4 py-2 rounded-full bg-brand border border-slate-600 text-white text-sm font-medium">Administración</a>
-  <a href="/cuenta" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Mi cuenta</a>
-  <a href="/ayuda" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Ayuda</a>
+  <a href="{{ portal_path }}/dashboard" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Aplicaciones</a>
+  <a href="{{ portal_path }}/admin" class="px-4 py-2 rounded-full bg-brand border border-slate-600 text-white text-sm font-medium">Administración</a>
+  <a href="{{ portal_path }}/cuenta" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Mi cuenta</a>
+  <a href="{{ portal_path }}/ayuda" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Ayuda</a>
 </nav>
 
 {% if error %}
@@ -23,7 +23,9 @@
 {% if password_reset_error %}
 <div class="mb-6 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300" role="alert">
   {% if password_reset_error == 'empty' %}La nueva contraseña no puede estar vacía.{% endif %}
+  {% if password_reset_error == 'length' %}La contraseña debe tener al menos 8 caracteres.{% endif %}
   {% if password_reset_error == 'user' %}Usuario no encontrado.{% endif %}
+  {% if password_reset_error == 'csrf' %}Token de seguridad inválido. Recarga la página.{% endif %}
 </div>
 {% endif %}
 {% if deleted %}
@@ -38,7 +40,8 @@
 
 <section class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-4 sm:p-8 mb-8">
   <h2 class="text-lg font-medium text-white mb-4">Nuevo usuario</h2>
-  <form method="post" action="/admin/users" class="flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-end">
+  <form method="post" action="{{ portal_path }}/admin/users" class="flex flex-col sm:flex-row flex-wrap gap-4 items-stretch sm:items-end">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="flex-1 min-w-0 sm:min-w-[140px]">
       <label for="username" class="block text-sm font-medium text-slate-400 mb-2">Usuario</label>
       <input type="text" id="username" name="username" required maxlength="64"
@@ -46,7 +49,7 @@
     </div>
     <div class="flex-1 min-w-0 sm:min-w-[140px]">
       <label for="password" class="block text-sm font-medium text-slate-400 mb-2">Contraseña</label>
-      <input type="password" id="password" name="password" required
+      <input type="password" id="password" name="password" required minlength="8"
         class="w-full min-h-[44px] px-4 py-2 rounded-xl bg-slate-900/80 border border-slate-600/80 text-white focus:border-accent focus:ring-1 focus:ring-accent/20">
     </div>
     <div class="w-full sm:w-auto sm:min-w-[120px]">
@@ -84,7 +87,8 @@
             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-accent/20 text-accent' if u.role == 'admin' else 'bg-slate-600/50 text-slate-400' }}">{{ u.role or 'operador' }}</span>
           </td>
           <td class="px-4 sm:px-6 py-3 sm:py-4">
-            <form method="post" action="/admin/users/{{ u.username }}/role" class="inline-flex items-center gap-2">
+            <form method="post" action="{{ portal_path }}/admin/users/{{ u.username }}/role" class="inline-flex items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <select name="role" onchange="this.form.submit()" class="text-sm min-h-[40px] px-3 py-2 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 focus:border-accent focus:ring-1 focus:ring-accent/20">
                 <option value="operador" {{ 'selected' if (u.role or 'operador') == 'operador' }}>Operador</option>
                 <option value="admin" {{ 'selected' if (u.role or '') == 'admin' }}>Admin</option>
@@ -92,14 +96,16 @@
             </form>
           </td>
           <td class="px-4 sm:px-6 py-3 sm:py-4">
-            <form method="post" action="/admin/users/{{ u.username }}/password" class="inline-flex flex-wrap items-center gap-2">
-              <input type="password" name="new_password" placeholder="Nueva contraseña" minlength="1" required
+            <form method="post" action="{{ portal_path }}/admin/users/{{ u.username }}/password" class="inline-flex flex-wrap items-center gap-2">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <input type="password" name="new_password" placeholder="Nueva contraseña" minlength="8" required
                 class="text-sm min-h-[40px] px-3 py-2 w-32 sm:w-36 rounded-lg bg-slate-800 border border-slate-600 text-slate-300 placeholder-slate-500 focus:border-accent focus:ring-1 focus:ring-accent/20">
               <button type="submit" class="px-3 py-2 rounded-lg bg-accent/80 text-white hover:bg-accent text-sm font-medium transition-colors whitespace-nowrap">Resetear</button>
             </form>
           </td>
           <td class="px-4 sm:px-6 py-3 sm:py-4">
-            <form method="post" action="/admin/users/{{ u.username }}/delete" class="inline" onsubmit="return confirm('¿Eliminar al usuario {{ u.username }}? Esta acción no se puede deshacer.');">
+            <form method="post" action="{{ portal_path }}/admin/users/{{ u.username }}/delete" class="inline" onsubmit="return confirm('¿Eliminar al usuario {{ u.username }}? Esta acción no se puede deshacer.');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
               <button type="submit" class="px-3 py-2 rounded-lg bg-red-900/60 text-red-300 hover:bg-red-800/60 text-sm font-medium transition-colors whitespace-nowrap">Borrar</button>
             </form>
           </td>
