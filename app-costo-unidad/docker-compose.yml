@@ -7,7 +7,6 @@ services:
       - ../.env
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
       - APP_ENV=production
     volumes:
       - ./data:/app/data
@@ -20,6 +19,7 @@ services:
       - "traefik.http.routers.costo-unidad.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.costo-unidad-strip.stripprefix.prefixes=/costo-unidad"
       - "traefik.http.routers.costo-unidad.middlewares=costo-unidad-strip"
+      - "traefik.http.routers.costo-unidad.service=costo-unidad"
       - "traefik.http.services.costo-unidad.loadbalancer.server.port=8000"
 networks:
   proxy:

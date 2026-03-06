@@ -7,7 +7,6 @@ services:
       - ../.env
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
       - APP_ENV=production
     volumes:
       - ./data:/app/data
@@ -20,6 +19,7 @@ services:
       - "traefik.http.routers.tiktok.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.tiktok-strip.stripprefix.prefixes=/tiktok"
       - "traefik.http.routers.tiktok.middlewares=tiktok-strip"
+      - "traefik.http.routers.tiktok.service=tiktok"
       - "traefik.http.services.tiktok.loadbalancer.server.port=8000"
 
 networks:

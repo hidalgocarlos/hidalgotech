@@ -7,7 +7,6 @@ services:
       - ../.env
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
       - APP_ENV=production
     volumes:
       - ./data:/app/data
@@ -20,6 +19,7 @@ services:
       - "traefik.http.routers.hashtags.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.hashtags-strip.stripprefix.prefixes=/hashtags"
       - "traefik.http.routers.hashtags.middlewares=hashtags-strip"
+      - "traefik.http.routers.hashtags.service=hashtags"
       - "traefik.http.services.hashtags.loadbalancer.server.port=8000"
 networks:
   proxy:

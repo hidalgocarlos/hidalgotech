@@ -7,7 +7,6 @@ services:
       - ../.env
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
       - APP_ENV=production
     volumes:
       - ./data:/app/data
@@ -20,6 +19,7 @@ services:
       - "traefik.http.routers.roi.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.roi-strip.stripprefix.prefixes=/roi"
       - "traefik.http.routers.roi.middlewares=roi-strip"
+      - "traefik.http.routers.roi.service=roi"
       - "traefik.http.services.roi.loadbalancer.server.port=8000"
 networks:
   proxy:

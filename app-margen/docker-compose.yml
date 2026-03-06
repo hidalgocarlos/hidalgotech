@@ -7,7 +7,6 @@ services:
       - ../.env
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
       - APP_ENV=production
     volumes:
       - ./data:/app/data
@@ -20,6 +19,7 @@ services:
       - "traefik.http.routers.margen.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.margen-strip.stripprefix.prefixes=/margen"
       - "traefik.http.routers.margen.middlewares=margen-strip"
+      - "traefik.http.routers.margen.service=margen"
       - "traefik.http.services.margen.loadbalancer.server.port=8000"
 
 networks:

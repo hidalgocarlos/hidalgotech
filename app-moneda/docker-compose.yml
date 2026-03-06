@@ -7,7 +7,6 @@ services:
       - ../.env
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
       - APP_ENV=production
     volumes:
       - ./data:/app/data
@@ -20,6 +19,7 @@ services:
       - "traefik.http.routers.moneda.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.moneda-strip.stripprefix.prefixes=/moneda"
       - "traefik.http.routers.moneda.middlewares=moneda-strip"
+      - "traefik.http.routers.moneda.service=moneda"
       - "traefik.http.services.moneda.loadbalancer.server.port=8000"
 
 networks:

@@ -7,7 +7,6 @@ services:
       - ../.env
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
       - APP_ENV=production
     networks:
       - proxy
@@ -18,6 +17,7 @@ services:
       - "traefik.http.routers.redimensionador.tls.certresolver=letsencrypt"
       - "traefik.http.middlewares.redimensionador-strip.stripprefix.prefixes=/redimensionador"
       - "traefik.http.routers.redimensionador.middlewares=redimensionador-strip"
+      - "traefik.http.routers.redimensionador.service=redimensionador"
       - "traefik.http.services.redimensionador.loadbalancer.server.port=8000"
 networks:
   proxy:
