@@ -42,10 +42,24 @@ async def get_current_user(request: Request, user=Depends(verify_token)):
 
 
 def require_admin(user=Depends(get_current_user)):
-    """Solo permite acceso si el usuario tiene rol admin."""
-    if getattr(user, "role", None) != "admin":
-        raise HTTPException(status_code=403, detail="Solo administradores")
-    return user
+    """Solo permite acceso si el usuario tiene rol admin o es el usuario por defecto (por si la BD es antigua)."""
+    if getattr(user, "role", None) == "admin":
+        return user
+    if getattr(user, "username", None) == DEFAULT_ADMIN_USER:
+        return user
+    raise HTTPException(status_code=403, detail="admin_required")
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Para 403 'admin_required' devuelve una página HTML clara."""
+    if exc.status_code == 403 and exc.detail == "admin_required":
+        return templates.TemplateResponse(
+            "403_admin.html",
+            {"request": request},
+            status_code=403,
+        )
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 # Cache para TRM y BTC (segundos)
 _rates_cache = {"trm": None, "btc_usd": None, "ts": 0}
@@ -63,14 +77,16 @@ DEFAULT_ADMIN_PASSWORD = os.environ.get("DEFAULT_ADMIN_PASSWORD", "admin123")
 
 @app.on_event("startup")
 def ensure_default_admin():
-    """Si no existe el usuario admin, lo crea con la contraseña por defecto y rol admin."""
+    """Si no existe el usuario admin, lo crea con la contraseña por defecto y rol admin. Si existe, asegura que tenga rol admin."""
     dao = UserDAO()
     u = dao.get_by_username(DEFAULT_ADMIN_USER)
     if not u:
         dao.create_user(DEFAULT_ADMIN_USER, hash_password(DEFAULT_ADMIN_PASSWORD), role="admin")
         print("Usuario por defecto creado (cambia la contraseña en producción)")
-    elif getattr(u, "role", None) != "admin":
-        dao.update_role(DEFAULT_ADMIN_USER, "admin")
+    else:
+        # Por si la BD es antigua o el rol quedó en operador, forzar admin para el usuario por defecto
+        if getattr(u, "role", None) != "admin":
+            dao.update_role(DEFAULT_ADMIN_USER, "admin")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -130,11 +146,14 @@ async def login(request: Request, username: str = Form(...), password: str = For
         del _login_attempts[ip]
     token = create_token({"sub": username})
     response = RedirectResponse("/dashboard", status_code=302)
+    # Secure=True solo si el cliente usó HTTPS (X-Forwarded-Proto detrás de Traefik); si no, la cookie no se envía y hay 302 en /dashboard
+    proto = (request.headers.get("x-forwarded-proto") or "").strip().lower()
+    secure_cookie = proto == "https" if proto else (not IS_DEV)
     response.set_cookie(
         "access_token",
         token,
         httponly=True,
-        secure=not IS_DEV,
+        secure=secure_cookie,
         samesite="lax",
         path="/",
         max_age=8 * 3600,
@@ -172,8 +191,10 @@ async def dashboard(request: Request, user=Depends(get_current_user)):
             {"name": "Pinterest Downloader", "url": "/pinterest/", "icon": "📌", "color": "from-red-600 to-red-700"},
             {"name": "YouTube Transcriber", "url": "/transcriber/", "icon": "📝", "color": "from-amber-500 to-orange-600"},
         ]
+    # Usuario por defecto siempre se considera admin para mostrar el panel (por si la BD es antigua)
+    is_admin = getattr(user, "role", None) == "admin" or (getattr(user, "username", None) == DEFAULT_ADMIN_USER)
     return templates.TemplateResponse(
-        "dashboard.html", {"request": request, "apps": apps, "user": user, "is_admin": getattr(user, "role", None) == "admin"}
+        "dashboard.html", {"request": request, "apps": apps, "user": user, "is_admin": is_admin}
     )
 
 

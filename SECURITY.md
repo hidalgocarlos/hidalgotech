@@ -25,7 +25,7 @@ Evaluación según política security-appsec: activos, riesgos, controles OWASP,
 | R4 | Fuerza bruta en login | Media | Medio | Medio | Rate limit: 5 intentos / IP, bloqueo 15 min |
 | R5 | Contenedores como root | Media | Medio | Medio | USER appuser (UID 1000) en todos los Dockerfile |
 | R6 | Clickjacking / MIME sniffing | Baja | Bajo | Bajo | Headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
-| R7 | Dependencias vulnerables | Baja | Alto | Medio | Revisión manual; en CI se puede añadir `pip audit` |
+| R7 | Dependencias vulnerables | Baja | Alto | Medio | CI ejecuta `pip-audit`; vulnerabilidades críticas sin parche = bloqueo |
 | R8 | Datos sensibles en cliente | Baja | Medio | Bajo | JWT en cookie httponly; no se exponen secretos en HTML/JS |
 
 ---
@@ -37,10 +37,10 @@ Evaluación según política security-appsec: activos, riesgos, controles OWASP,
 | 1 | **No secretos en repo/logs/cliente** | ✅ .gitignore (.env, data, acme.json); SECRET_KEY solo desde env; startup no imprime contraseña |
 | 2 | **AuthN/AuthZ por endpoint** | ✅ Login público; resto requiere verify_token; admin requiere require_admin |
 | 3 | **Validación de entrada y errores** | ✅ Form con strip/validación; mensajes genéricos ("Credenciales inválidas"); no se filtra información sensible en errores |
-| 4 | **Dependencias** | ⚠️ Sin pip audit en CI; revisión manual. Criterio de bloqueo: vulnerabilidades críticas sin parche = bloquear |
+| 4 | **Dependencias** | ✅ `pip audit` en CI (`.github/workflows/pip-audit.yml`) y script local `scripts/audit-deps.sh`. Criterio de bloqueo: vulnerabilidades críticas sin parche = bloquear |
 | 5 | **Contenedores no-root** | ✅ Todos los Dockerfile: USER appuser (1000), EXPOSE documentado |
 | 6 | **CORS, headers y rate limit** | ✅ Headers: X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy. Rate limit solo en POST /login (5/15 min). CORS: no API pública cross-origin; mismo origen para portal y apps |
-| 7 | **Criterio de bloqueo** | ✅ No desplegar si: SECRET_KEY por defecto en producción, vulnerabilidades críticas en dependencias, o fallos en tests de seguridad |
+| 7 | **Criterio de bloqueo** | ✅ No desplegar si: SECRET_KEY por defecto en producción, vulnerabilidades críticas en dependencias (pip-audit en CI), o fallos en tests de seguridad |
 
 ---
 
@@ -48,7 +48,7 @@ Evaluación según política security-appsec: activos, riesgos, controles OWASP,
 
 | Riesgo residual | Nivel | Aceptación |
 |-----------------|-------|------------|
-| Dependencias sin escaneo automático en CI | Medio | Aceptado; añadir `pip audit` en pipeline recomendado |
+| Dependencias sin escaneo automático en CI | Medio | Mitigado: CI ejecuta `pip-audit` (workflow `pip-audit`); fallo en vulnerabilidades conocidas = bloqueo |
 | SQLite sin cifrado en reposo | Bajo | Aceptado para este contexto; opcional cifrado FS o BD externa |
 | Rate limit solo en login (no en API global) | Bajo | Aceptado; API /api/rates requiere JWT |
 
@@ -59,7 +59,7 @@ Evaluación según política security-appsec: activos, riesgos, controles OWASP,
 - [x] No hay secretos en repo, logs ni cliente.
 - [x] AuthN/AuthZ definidos por endpoint y recurso.
 - [x] Validación de entrada y manejo de errores sin fuga de datos.
-- [x] Dependencias: sin auditoría automática; criterio = bloquear si hay críticas conocidas.
+- [x] Dependencias: auditoría con `pip-audit` en CI y `scripts/audit-deps.sh`; criterio = bloquear si hay vulnerabilidades críticas conocidas sin parche.
 - [x] Contenedores corren con usuario no-root y permisos mínimos.
 - [x] CORS, headers y rate limit documentados (este documento + DEPLOY.md).
 - [x] Existe criterio de bloqueo de despliegue por riesgo alto.
@@ -71,4 +71,5 @@ Evaluación según política security-appsec: activos, riesgos, controles OWASP,
 **APROBAR** despliegue en local y posterior push a git, con la condición de que en **producción** se definan siempre `SECRET_KEY` y contraseñas de admin vía variables de entorno (ver DEPLOY.md y .env.example).
 
 **Criterio de bloqueo para futuros releases:**  
-No hacer release si existe vulnerabilidad crítica conocida en dependencias sin mitigación o si SECRET_KEY sigue siendo el valor por defecto en entorno de producción.
+- No hacer release si existe **vulnerabilidad crítica conocida en dependencias sin mitigación** (el CI `pip-audit` falla y bloquea merge/despliegue).  
+- No hacer release si SECRET_KEY sigue siendo el valor por defecto en entorno de producción.

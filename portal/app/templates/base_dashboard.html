@@ -23,12 +23,10 @@
         <span aria-hidden="true">📦</span>
         <span>Aplicaciones</span>
       </a>
-      {% if is_admin %}
       <a href="/admin" class="{% block nav_admin_class %}flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-colors{% endblock %}">
-        <span aria-hidden="true">⚙️</span>
-        <span>Administración</span>
+        <span aria-hidden="true">👥</span>
+        <span>Panel de usuarios</span>
       </a>
-      {% endif %}
       <a href="/cuenta" class="{% block nav_cuenta_class %}flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:bg-slate-800/60 hover:text-white transition-colors{% endblock %}">
         <span aria-hidden="true">👤</span>
         <span>Mi cuenta</span>
@@ -56,6 +54,9 @@
       <button type="button" @click="sidebarOpen = true" class="lg:hidden p-2 -ml-2 text-slate-400 hover:text-white rounded-lg touch-target" aria-label="Abrir menú">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
+      {% if is_admin %}
+      <a href="/admin" class="mr-4 px-3 py-2 rounded-lg bg-accent/20 text-accent hover:bg-accent/30 text-sm font-medium whitespace-nowrap">👥 Usuarios</a>
+      {% endif %}
       <div class="hidden lg:flex items-center gap-4 text-sm text-slate-400 font-mono tabular-nums ml-0">
         <span id="local-datetime" aria-live="polite"></span>
         <span class="text-slate-600">|</span>
@@ -88,6 +89,7 @@
         <div class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-4">
           <p class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Enlaces rápidos</p>
           <ul class="space-y-2">
+            <li><a href="/admin" class="text-sm text-accent hover:text-accent-hover transition-colors flex items-center justify-between"><span>Panel de usuarios</span><span>→</span></a></li>
             <li><a href="/ayuda" class="text-sm text-slate-300 hover:text-accent transition-colors flex items-center justify-between"><span>Ayuda</span><span>→</span></a></li>
             <li><a href="#" class="text-sm text-slate-300 hover:text-accent transition-colors flex items-center justify-between"><span>Documentación</span><span>→</span></a></li>
             <li><a href="#" class="text-sm text-slate-300 hover:text-accent transition-colors flex items-center justify-between"><span>Blog</span><span>→</span></a></li>

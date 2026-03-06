@@ -1,0 +1,27 @@
+# pip-audit: bloquea si hay vulnerabilidades conocidas en dependencias Python.
+# Criterio: vulnerabilidades críticas sin parche = bloquear (no mergear / no desplegar).
+
+name: pip-audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pip-audit
+        run: python -m pip install --quiet pip-audit
+
+      - name: Audit dependencies (portal + apps)
+        run: bash scripts/audit-deps.sh

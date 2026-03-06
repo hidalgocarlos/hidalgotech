@@ -1,6 +1,7 @@
 services:
   traefik:
-    image: traefik:v3.0
+    # v3.6.1+ requiere Docker API 1.40+ (Docker 29+); v3.0 falla con "client version 1.24 is too old"
+    image: traefik:v3.6
     container_name: traefik
     restart: always
     command: ["--configFile=/traefik.yml"]

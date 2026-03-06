@@ -14,11 +14,18 @@ services:
       - proxy
     labels:
       - "traefik.enable=true"
+      - "traefik.http.services.portal.loadbalancer.server.port=8000"
+      # Dominio hidalgotech.com (HTTPS con Let's Encrypt)
       - "traefik.http.routers.portal.rule=Host(`hidalgotech.com`) && PathPrefix(`/`)"
-      - "traefik.http.routers.portal.priority=1"
+      - "traefik.http.routers.portal.priority=10"
       - "traefik.http.routers.portal.entrypoints=websecure"
       - "traefik.http.routers.portal.tls.certresolver=letsencrypt"
-      - "traefik.http.services.portal.loadbalancer.server.port=8000"
+      # Por IP: http://TU_IP o https://TU_IP (evita 404 cuando no usas dominio)
+      - "traefik.http.routers.portal-ip.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.portal-ip.priority=1"
+      - "traefik.http.routers.portal-ip.entrypoints=websecure"
+      - "traefik.http.routers.portal-ip.service=portal"
+      - "traefik.http.routers.portal-ip.tls=true"
 
 networks:
   proxy:

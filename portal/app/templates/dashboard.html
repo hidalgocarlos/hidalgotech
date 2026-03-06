@@ -3,27 +3,41 @@
 {% block nav_apps_class %}flex items-center gap-3 px-3 py-2.5 rounded-xl bg-accent/20 text-accent hover:bg-accent/30 hover:text-white transition-colors{% endblock %}
 
 {% block dashboard_content %}
+{% if is_admin %}
+<!-- Aviso visible solo para administradores: acceso al panel de usuarios -->
+<div class="mb-6 rounded-2xl border-2 border-accent bg-accent/20 p-4 flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <p class="font-medium text-white">Eres administrador.</p>
+    <p class="text-sm text-slate-300">Desde aquí puedes crear usuarios, resetear contraseñas, cambiar roles y borrar usuarios.</p>
+  </div>
+  <a href="/admin" class="shrink-0 px-6 py-3 rounded-xl bg-accent text-white font-semibold hover:bg-accent-hover transition-colors shadow-lg">
+    Abrir panel de usuarios →
+  </a>
+</div>
+{% endif %}
+
 <h1 class="text-xl sm:text-2xl font-semibold tracking-tight text-white font-sans mb-1">Panel de control</h1>
 <p class="text-sm text-slate-500 font-mono mb-6">// Simple · Seguro · Siempre actualizado</p>
 
 <!-- Tabs -->
 <nav class="flex flex-wrap gap-2 mb-8" aria-label="Secciones">
   <a href="/dashboard" class="px-4 py-2 rounded-full bg-brand border border-slate-600 text-white text-sm font-medium">Aplicaciones</a>
-  {% if is_admin %}
-  <a href="/admin" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Administración</a>
-  {% endif %}
+  <a href="/admin" class="px-4 py-2 rounded-full border border-accent/50 text-accent hover:bg-accent/20 text-sm font-medium transition-colors">👥 Panel de usuarios</a>
   <a href="/cuenta" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Mi cuenta</a>
   <a href="/ayuda" class="px-4 py-2 rounded-full border border-slate-600 text-slate-400 hover:text-white hover:border-slate-500 text-sm font-medium transition-colors">Ayuda</a>
 </nav>
 
-<!-- 3 cards -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-  <div class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
-    <h2 class="text-sm font-medium text-slate-400 mb-1">Acceso rápido</h2>
-    <p class="text-2xl font-semibold text-white">{{ apps|length }} herramientas disponibles</p>
-    <p class="text-xs text-slate-500 mt-2 font-mono">TikTok · Instagram · Moneda · QR · UTM · …</p>
-    <a href="#apps" class="mt-4 inline-block text-sm font-medium text-accent hover:text-accent-hover transition-colors">Ver todas las aplicaciones →</a>
-  </div>
+<!-- Acceso directo al panel de usuarios (solo admins pueden usarlo; otros verán "Solo administradores") -->
+<div class="mb-8 rounded-2xl border border-accent/30 bg-accent/5 p-5">
+  <h2 class="text-base font-medium text-white mb-1">Panel de administración de usuarios</h2>
+  <p class="text-sm text-slate-400 mb-4">Crear usuarios, resetear contraseñas, cambiar roles (admin/operador) y borrar usuarios. Solo administradores pueden gestionar.</p>
+  <a href="/admin" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-white font-medium hover:bg-accent-hover transition-colors">
+    Abrir panel de usuarios →
+  </a>
+</div>
+
+<!-- Estado en vivo -->
+<div class="mb-10 max-w-sm">
   <div class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
     <h2 class="text-sm font-medium text-slate-400 mb-1">Estado en vivo</h2>
     <div class="flex items-center gap-2 mt-1">
@@ -31,11 +45,6 @@
       <span class="text-white font-medium">Sesión activa</span>
     </div>
     <p class="text-xs text-slate-500 mt-2 font-mono" id="local-datetime-inline">—</p>
-  </div>
-  <div class="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 flex flex-col">
-    <h2 class="text-sm font-medium text-slate-400 mb-1">Acción rápida</h2>
-    <p class="text-slate-300 text-sm flex-1">Abre el ToolBox y elige una herramienta.</p>
-    <a href="#apps" class="mt-4 inline-flex items-center justify-center py-2.5 rounded-xl bg-accent text-white font-medium hover:bg-accent-hover transition-colors">Ir al ToolBox</a>
   </div>
 </div>
 

@@ -3,6 +3,12 @@ services:
     build: .
     container_name: app-utm
     restart: always
+    env_file:
+      - ../.env
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - PORTAL_URL=${PORTAL_URL:-https://hidalgotech.com/}
+      - APP_ENV=production
     volumes:
       - ./data:/app/data
     networks:

@@ -23,10 +23,10 @@ git commit -m "ToolBox Pro: portal + apps, seguridad y SSL listos para producci�
 
 # Añadir el remoto (elige una opción)
 # Opción A: GitHub
-git remote add origin https://github.com/TU_USUARIO/hidalgotech.git
+git remote add origin https://github.com/hidalgocarlos/hidalgotech.git
 
 # Opción B: GitLab
-# git remote add origin https://gitlab.com/TU_USUARIO/hidalgotech.git
+# git remote add origin https://gitlab.com/hidalgocarlos/hidalgotech.git
 
 # Opción C: Servidor vía SSH (reemplaza usuario e IP/dominio)
 # git remote add origin ssh://usuario@hidalgotech.com/home/usuario/hidalgotech.git
@@ -60,7 +60,7 @@ git push origin main
 ```bash
 # Clonar (o si ya tienes la carpeta, solo pull)
 cd /home/tu_usuario   # o la ruta que uses
-git clone https://github.com/TU_USUARIO/hidalgotech.git
+git clone https://github.com/hidalgocarlos/hidalgotech.git
 cd hidalgotech
 # O si ya existe el repo:
 # cd hidalgotech && git pull origin main

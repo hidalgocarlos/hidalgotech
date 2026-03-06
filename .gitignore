@@ -35,3 +35,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# ZIP de deploy (generado por crear-zip-deploy.ps1)
+hidalgotech-deploy.zip
