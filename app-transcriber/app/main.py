@@ -5,7 +5,7 @@ import re
 
 import yt_dlp
 from docx import Document
-from fastapi import Depends, FastAPI, Form, Request
+from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
@@ -18,10 +18,12 @@ app = FastAPI(root_path="/transcriber")
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(_APP_DIR, "templates"))
 templates.env.globals["getattr"] = getattr
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
-templates.env.globals["dashboard_url"] = _portal + "/" if _portal != "/" else "/"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
+templates.env.globals["dashboard_url"] = "/"
+
+COOKIES_FILE = "/app/data/cookies.txt"
+os.makedirs("/app/data", exist_ok=True)
 
 
 def _format_duration(seconds):
@@ -48,6 +50,14 @@ YDL_OPTS_BASE = {
     "no_warnings": True,
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 }
+
+
+def _get_ydl_opts(base_opts: dict = None) -> dict:
+    """Retorna opciones de yt-dlp con cookies si existen."""
+    opts = {**YDL_OPTS_BASE, **(base_opts or {})}
+    if os.path.isfile(COOKIES_FILE):
+        opts["cookiefile"] = COOKIES_FILE
+    return opts
 
 
 def _is_youtube_url(url: str) -> bool:
@@ -83,7 +93,7 @@ def _sync_transcription_worker(
     audio_path = None
     files_to_remove = []
     try:
-        audio_path, err_audio = whisper_service.download_audio(url)
+        audio_path, err_audio = whisper_service.download_audio(url, COOKIES_FILE)
         if not audio_path:
             dao.update_failed(job_id, err_audio or "No se pudo descargar el audio.")
             return
@@ -157,8 +167,7 @@ async def _run_transcription_job(
 async def index(request: Request, user=Depends(verify_token)):
     dao = TranscriptionDAO()
     history = dao.get_recent(limit=50)
-    portal_base = os.environ.get("PORTAL_URL", "").strip()
-    dashboard_url = (portal_base.rstrip("/") + "/dashboard") if portal_base else "/dashboard"
+    dashboard_url = "/dashboard"
     return templates.TemplateResponse(
         "index.html",
         {"request": request, "history": history, "user": user, "dashboard_url": dashboard_url},
@@ -178,7 +187,7 @@ async def preview(
             {"error": "Solo se admiten enlaces de YouTube (youtube.com o youtu.be)."},
             status_code=400,
         )
-    opts = {**YDL_OPTS_BASE, "format": "best"}
+    opts = _get_ydl_opts({"format": "best"})
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = await asyncio.to_thread(ydl.extract_info, url, download=False)
@@ -222,7 +231,8 @@ async def transcribir(
     # 0) Obtener info del vídeo (título y duración) — siempre útil
     video_info = {}
     try:
-        with yt_dlp.YoutubeDL(YDL_OPTS_BASE) as ydl:
+        opts = _get_ydl_opts()
+        with yt_dlp.YoutubeDL(opts) as ydl:
             video_info = await asyncio.wait_for(
                 asyncio.to_thread(ydl.extract_info, url, download=False),
                 timeout=30,
@@ -284,7 +294,7 @@ async def transcribir(
                 "video_title": video_title or "Sin título",
             })
 
-        audio_path, err_audio = await asyncio.to_thread(whisper_service.download_audio, url)
+        audio_path, err_audio = await asyncio.to_thread(whisper_service.download_audio, url, COOKIES_FILE)
         if not audio_path:
             return JSONResponse(
                 {"error": err_audio or "No se pudo descargar el audio."},
@@ -336,6 +346,19 @@ async def transcribir(
         "source": source,
         "id": tid,
     })
+
+
+@app.post("/upload-cookies")
+async def upload_cookies(file: UploadFile = File(...), user=Depends(verify_token)):
+    if not file.filename or not file.filename.lower().endswith(".txt"):
+        return JSONResponse(
+            {"error": "Sube un archivo .txt (cookies en formato Netscape)"},
+            status_code=400,
+        )
+    content = await file.read()
+    with open(COOKIES_FILE, "wb") as f:
+        f.write(content)
+    return JSONResponse({"ok": True, "message": "Cookies guardadas. Ahora podrás descargar videos restringidos."})
 
 
 def _safe_filename(s: str, max_len: int = 80) -> str:

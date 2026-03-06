@@ -25,9 +25,10 @@ def _get_model(model_size: str = "small"):
     return _whisper_models[model_size]
 
 
-def download_audio(url: str) -> tuple[str | None, str | None]:
+def download_audio(url: str, cookies_file: str = None) -> tuple[str | None, str | None]:
     """
     Download audio only from YouTube URL. Returns (path_to_audio_file, error_message).
+    cookies_file: optional path to cookies.txt (Netscape format)
     Caller must delete the file when done.
     """
     tmp = tempfile.NamedTemporaryFile(prefix="yt_", delete=False, suffix=".mp3")
@@ -43,6 +44,8 @@ def download_audio(url: str) -> tuple[str | None, str | None]:
         "outtmpl": outtmpl,
         "postprocessors": [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3"}],
     }
+    if cookies_file and os.path.isfile(cookies_file):
+        ydl_opts["cookiefile"] = cookies_file
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
