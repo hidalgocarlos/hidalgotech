@@ -1,63 +1,69 @@
+import json
 import os
+import re
 import uuid
 
 import httpx
-import yt_dlp
 from fastapi import Depends, FastAPI, File, Form, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
+from instagrapi import Client
+from instagrapi.exceptions import InstagramException, LoginRequired
 
 from .auth import verify_token
 from .dao.download_dao import DownloadDAO
 
 app = FastAPI(root_path="/instagram")
 templates = Jinja2Templates(directory="app/templates")
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
 
 DOWNLOAD_DIR = "/app/data/downloads"
-COOKIE_FILE = "/app/data/cookies.txt"
+SESSION_FILE = "/app/data/session.json"
+COOKIES_FILE = "/app/data/cookies.txt"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
-def _get_ydl_base_opts():
-    opts = {
-        "quiet": True,
-        "no_warnings": True,
-        "extract_flat": False,
-        "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    }
-    if os.path.isfile(COOKIE_FILE):
-        opts["cookiefile"] = COOKIE_FILE
-    return opts
+def _get_instagrapi_client() -> Client:
+    """Crea un cliente de instagrapi con sesión persistente si existe."""
+    cl = Client()
+    if os.path.isfile(SESSION_FILE):
+        try:
+            with open(SESSION_FILE) as f:
+                session = json.load(f)
+            cl.set_settings(session)
+        except Exception:
+            pass
+    return cl
+
+
+def _save_session(cl: Client):
+    """Guarda la sesión del cliente en JSON."""
+    try:
+        with open(SESSION_FILE, "w") as f:
+            json.dump(cl.get_settings(), f)
+    except Exception:
+        pass
+
+
+def _extract_media_id(url: str) -> str | None:
+    """Extrae el media_id de una URL de Instagram."""
+    patterns = [
+        r"(?:instagram\.com|instagr\.am)(?:/[^/?]+)?/(?:reel|p|stories)/([^/?]+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, url)
+        if match:
+            return match.group(1)
+    return None
 
 
 def _detect_media_type(url: str) -> str:
-    if "/reel/" in url:
+    if "/reel/" in url or "/reels/" in url:
         return "Reel"
     if "/stories/" in url:
         return "Historia"
     return "Post"
-
-
-def _best_thumbnail(info: dict) -> str | None:
-    """Obtiene la mejor URL de thumbnail desde la info de yt-dlp (Instagram puede usar thumbnail o thumbnails)."""
-    if info.get("thumbnail"):
-        return info["thumbnail"]
-    thumbnails = info.get("thumbnails") or []
-    if not thumbnails:
-        return None
-    # Ordenar por preferencia o resolución (width) y quedarnos con la mejor
-    def key(t):
-        w = t.get("width") or t.get("preference") or 0
-        return (w, t.get("id", 0))
-    sorted_th = sorted(thumbnails, key=key, reverse=True)
-    for t in sorted_th:
-        url = t.get("url")
-        if url:
-            return url
-    return None
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -72,31 +78,49 @@ async def index(request: Request, user=Depends(verify_token)):
 
 @app.post("/preview")
 async def preview(url: str = Form(...), user=Depends(verify_token)):
-    """Detecta si es reel, historia o post y devuelve thumbnail (mejor disponible)."""
+    """Obtiene información del medio (reel, historia o post)."""
     if not url.strip():
         return JSONResponse({"error": "Escribe una URL de Instagram."}, status_code=400)
     if "instagram.com" not in url and "instagr.am" not in url:
         return JSONResponse({"error": "Solo se admiten enlaces de Instagram (instagram.com)."}, status_code=400)
+
+    media_id = _extract_media_id(url)
+    if not media_id:
+        return JSONResponse({"error": "No se pudo extraer el ID del enlace."}, status_code=400)
+
     try:
-        with yt_dlp.YoutubeDL(_get_ydl_base_opts()) as ydl:
-            info = ydl.extract_info(url, download=False)
-            if not info:
-                return JSONResponse({"error": "No se pudo obtener información del enlace. ¿Es público?"}, status_code=400)
-            media_type = _detect_media_type(url)
-            thumb = _best_thumbnail(info)
-            return JSONResponse(
-                {
-                    "title": info.get("title"),
-                    "thumbnail": thumb,
-                    "type": media_type,
-                    "uploader": info.get("uploader"),
-                }
-            )
-    except yt_dlp.utils.DownloadError as e:
-        msg = str(e).split("\n")[0] if str(e) else "Error al obtener la vista previa."
-        if "Private" in str(e) or "login" in str(e).lower():
-            msg = "El contenido es privado o requiere iniciar sesión. Prueba subiendo cookies.txt arriba."
-        return JSONResponse({"error": msg}, status_code=400)
+        cl = _get_instagrapi_client()
+        media = cl.media_info(media_id)
+        if not media:
+            return JSONResponse({"error": "No se pudo obtener información del enlace. ¿Es público?"}, status_code=400)
+
+        media_type = _detect_media_type(url)
+        thumbnail = None
+        if media.thumbnail_url:
+            thumbnail = media.thumbnail_url
+        elif hasattr(media, "image_versions2") and media.image_versions2:
+            candidates = media.image_versions2.get("candidates", [])
+            if candidates:
+                thumbnail = candidates[0].url
+
+        return JSONResponse(
+            {
+                "title": getattr(media.user, "username", "—"),
+                "thumbnail": thumbnail,
+                "type": media_type,
+                "uploader": getattr(media.user, "full_name", "—") or getattr(media.user, "username", "—"),
+            }
+        )
+    except LoginRequired:
+        return JSONResponse(
+            {"error": "El contenido es privado o requiere iniciar sesión. Prueba subiendo cookies.txt arriba."},
+            status_code=400,
+        )
+    except InstagramException as e:
+        msg = str(e)
+        if "not found" in msg.lower() or "private" in msg.lower():
+            msg = "El contenido es privado, no existe o requiere iniciar sesión."
+        return JSONResponse({"error": msg[:200]}, status_code=400)
     except Exception as e:
         return JSONResponse({"error": f"Error: {str(e)[:200]}"}, status_code=500)
 
@@ -121,49 +145,90 @@ async def thumbnail_proxy(url: str = "", user=Depends(verify_token)):
 
 @app.post("/download")
 async def download(url: str = Form(...), user=Depends(verify_token)):
+    if not url.strip():
+        return JSONResponse({"error": "Escribe una URL de Instagram."}, status_code=400)
+    if "instagram.com" not in url and "instagr.am" not in url:
+        return JSONResponse({"error": "Solo se admiten enlaces de Instagram (instagram.com)."}, status_code=400)
+
+    media_id = _extract_media_id(url)
+    if not media_id:
+        return JSONResponse({"error": "No se pudo extraer el ID del enlace."}, status_code=400)
+
     filename = f"{uuid.uuid4()}.mp4"
-    filepath = f"{DOWNLOAD_DIR}/{filename}"
-    ydl_opts = {
-        "outtmpl": filepath,
-        "format": "bestvideo+bestaudio/best[ext=mp4]/best",
-        "format_sort": ["res", "ext:mp4"],
-        "merge_output_format": "mp4",
-        "quiet": True,
-        **_get_ydl_base_opts(),
-    }
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    filepath = os.path.join(DOWNLOAD_DIR, filename)
 
-    file_size = 0
-    if os.path.isfile(filepath):
+    try:
+        cl = _get_instagrapi_client()
+        media = cl.media_info(media_id)
+        if not media:
+            return JSONResponse({"error": "No se pudo obtener el video."}, status_code=400)
+
+        # Descargar el video
+        cl.video_download(media_id, filepath)
+
+        if not os.path.isfile(filepath):
+            return JSONResponse({"error": "La descarga no generó ningún archivo. Prueba otro enlace."}, status_code=500)
+
         file_size = os.path.getsize(filepath)
+        media_type = _detect_media_type(url)
+        uploader_name = getattr(media.user, "username", "—")
+        safe_title = (uploader_name or "video").replace("/", "-").strip() or "video"
 
-    media_type = _detect_media_type(url)
-    dao = DownloadDAO()
-    dao.save(
-        url=url,
-        filename=filename,
-        title=info.get("title"),
-        uploader=info.get("uploader"),
-        duration=info.get("duration"),
-        file_size=file_size,
-        media_type=media_type,
-        username=user,
-    )
-    return FileResponse(
-        filepath, filename=f"{info.get('title', 'video')}.mp4"
-    )
+        dao = DownloadDAO()
+        dao.save(
+            url=url,
+            filename=filename,
+            title=uploader_name,
+            uploader=getattr(media.user, "full_name", uploader_name),
+            duration=getattr(media, "video_duration", None),
+            file_size=file_size,
+            media_type=media_type,
+            username=user,
+        )
+        return FileResponse(filepath, filename=f"{safe_title}.mp4", media_type="video/mp4")
+    except LoginRequired:
+        return JSONResponse(
+            {"error": "El contenido es privado o requiere iniciar sesión. Prueba subiendo cookies.txt."},
+            status_code=400,
+        )
+    except InstagramException as e:
+        msg = str(e)
+        if "not found" in msg.lower() or "private" in msg.lower():
+            msg = "El contenido es privado, no existe o requiere iniciar sesión."
+        return JSONResponse({"error": msg[:200]}, status_code=400)
+    except Exception as e:
+        return JSONResponse({"error": f"Error: {str(e)[:200]}"}, status_code=500)
 
 
 @app.post("/upload-cookies")
 async def upload_cookies(file: UploadFile = File(...), user=Depends(verify_token)):
-    if not file.filename or not file.filename.lower().endswith(".txt"):
+    if not file.filename:
         return JSONResponse(
-            {"error": "Sube un archivo .txt (cookies en formato Netscape)"},
+            {"error": "Sube un archivo (.txt Netscape o .json sesión)"},
             status_code=400,
         )
-    path = COOKIE_FILE
+
+    filename_lower = file.filename.lower()
     content = await file.read()
-    with open(path, "wb") as f:
-        f.write(content)
-    return JSONResponse({"ok": True, "message": "Cookies guardadas. Útil para historias privadas."})
+
+    try:
+        if filename_lower.endswith(".json"):
+            # Sesión JSON
+            session_data = json.loads(content)
+            with open(SESSION_FILE, "w") as f:
+                json.dump(session_data, f)
+            return JSONResponse({"ok": True, "message": "Sesión importada. Útil para acceso a contenido privado."})
+        elif filename_lower.endswith(".txt"):
+            # Cookies Netscape
+            with open(COOKIES_FILE, "wb") as f:
+                f.write(content)
+            return JSONResponse({"ok": True, "message": "Cookies guardadas. Útil para historias privadas."})
+        else:
+            return JSONResponse(
+                {"error": "Sube un archivo .txt (Netscape) o .json (sesión)"},
+                status_code=400,
+            )
+    except json.JSONDecodeError:
+        return JSONResponse({"error": "Archivo JSON inválido."}, status_code=400)
+    except Exception as e:
+        return JSONResponse({"error": f"Error al procesar archivo: {str(e)[:100]}"}, status_code=500)
