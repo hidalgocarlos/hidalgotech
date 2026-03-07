@@ -20,7 +20,8 @@
     </div>
     {% endif %}
 
-    <form method="post" action="/login?redirect_uri={{ redirect_uri }}" class="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 space-y-4">
+    <form method="post" action="/login" class="rounded-2xl border border-slate-800/80 bg-slate-900/40 p-6 space-y-4">
+      <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
       <div>
         <label for="username" class="block text-sm font-medium text-slate-400 mb-2">Usuario</label>
         <input type="text" id="username" name="username" required autocomplete="username"

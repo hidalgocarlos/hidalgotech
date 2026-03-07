@@ -62,8 +62,7 @@ async def login_page(request: Request):
 
 
 @app.post("/login")
-async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    redirect_uri = request.query_params.get("redirect_uri", "/")
+async def login(request: Request, username: str = Form(...), password: str = Form(...), redirect_uri: str = Form(default="/")):
     if username == ADMIN_USER and password == ADMIN_PASSWORD:
         token = _create_token(ADMIN_USER)
         response = RedirectResponse(url=redirect_uri, status_code=302)
