@@ -38,8 +38,8 @@
 </head>
 <body class="bg-surface text-surface-text min-h-screen font-sans antialiased relative">
   <header class="sticky top-0 z-20 flex items-center justify-between h-14 px-4 sm:px-6 bg-surface/95 backdrop-blur border-b border-slate-800/80">
-    <a href="{{ portal_url|default('/', true) }}" class="font-semibold text-white flex items-center gap-2"><span class="font-sans">ToolBox Pro</span><span class="font-tech text-whatsapp text-sm">by HidalgoTech</span></a>
-    <a href="{{ portal_url|default('/', true) }}" class="text-sm text-slate-400 hover:text-white font-medium py-2 px-4 rounded-xl hover:bg-slate-800/60 transition-colors">Menú principal</a>
+    <a href="/" class="font-semibold text-white flex items-center gap-2"><span class="font-sans">ToolBox Pro</span><span class="font-tech text-whatsapp text-sm">by HidalgoTech</span></a>
+    <a href="/" class="text-sm text-slate-400 hover:text-white font-medium py-2 px-4 rounded-xl hover:bg-slate-800/60 transition-colors">Menú principal</a>
   </header>
   <div class="relative z-10 min-h-[calc(100vh-3.5rem)]">{% block content %}{% endblock %}</div>
   {% block scripts %}{% endblock %}

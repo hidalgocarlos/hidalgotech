@@ -8,13 +8,13 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Buscar raíz del proyecto (donde está este script o donde está portal/)
+# Buscar raíz del proyecto (donde está este script o donde está un docker-compose.yml)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ -d "$SCRIPT_DIR/portal" ] && [ -f "$SCRIPT_DIR/portal/docker-compose.yml" ]; then
+if [ -f "$SCRIPT_DIR/docker-compose.local.yml" ]; then
   ROOT="$SCRIPT_DIR"
 else
   ROOT="${HOME}/hidalgotech"
-  if [ ! -d "$ROOT/portal" ]; then
+  if [ ! -f "$ROOT/docker-compose.local.yml" ]; then
     echo "No se encuentra el proyecto (ni en $(dirname "$SCRIPT_DIR") ni en $ROOT)."
     echo "Clona el repo primero: git clone https://github.com/hidalgocarlos/hidalgotech.git $ROOT"
     exit 1
@@ -114,11 +114,11 @@ if command -v docker &>/dev/null; then
     echo "  → cd $ROOT && export \$(grep -v '^#' .env | xargs) && cd traefik && docker compose up -d && cd .."
     MISSING=$((MISSING + 1))
   fi
-  if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "portal"; then
-    echo -e "${GREEN}[OK]${NC} Contenedor 'portal' en ejecución."
+  if docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "traefik"; then
+    echo -e "${GREEN}[OK]${NC} Contenedor 'traefik' en ejecución."
   else
-    echo -e "${RED}[FALTA]${NC} Portal no está corriendo."
-    echo "  → cd $ROOT && export \$(grep -v '^#' .env | xargs) && docker compose -f portal/docker-compose.yml up -d --build"
+    echo -e "${RED}[FALTA]${NC} Traefik no está corriendo."
+    echo "  → cd $ROOT/traefik && docker compose up -d"
     MISSING=$((MISSING + 1))
   fi
 else
@@ -130,5 +130,5 @@ if [ "$MISSING" -gt 0 ]; then
   echo -e "${RED}Resumen: $MISSING requisito(s) faltan.${NC} Sigue los comandos indicados arriba."
   echo "Para instalar todo de una vez: sudo ./setup-server.sh"
 else
-  echo -e "${GREEN}Todo listo.${NC} Si algo falla, revisa .env y reinicia: docker compose -f portal/docker-compose.yml up -d --build"
+  echo -e "${GREEN}Todo listo.${NC} Si algo falla, revisa .env y reinicia: bash deploy.sh"
 fi

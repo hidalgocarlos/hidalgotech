@@ -9,14 +9,8 @@ from .dao.costo_dao import CostoDAO
 
 app = FastAPI(root_path="/costo-unidad")
 templates = Jinja2Templates(directory="app/templates")
-# The prefix for all portal URLs, derived from environment variable.
-# Ensures no trailing slash, e.g., "http://host" or "" for root.
-portal_prefix = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-
-# Make URLs available in templates.
-# Ensures a single trailing slash, e.g., "http://host/" or "/"
-templates.env.globals["portal_url"] = f"{portal_prefix}/"
-templates.env.globals["favicon_url"] = f"{portal_prefix}/static/favicon.png"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
 
 
 def format_number_co_style(value, decimals=2):

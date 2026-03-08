@@ -13,7 +13,6 @@ dist/
 build/
 
 # Datos y BD (no subir a git)
-portal/data/
 **/data/*.db
 **/data/*.sqlite
 **/acme.json

@@ -13,7 +13,7 @@ if ! command -v pip-audit &>/dev/null; then
 fi
 
 FAILED=0
-for req in portal/requirements.txt app-*/requirements.txt _template-app/requirements.txt; do
+for req in app-*/requirements.txt _template-app/requirements.txt; do
   [ -f "$req" ] || continue
   echo "--- Audit: $req ---"
   if ! pip-audit -r "$req" 2>&1; then

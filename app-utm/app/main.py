@@ -10,9 +10,8 @@ from .dao.link_dao import LinkDAO
 
 app = FastAPI(root_path="/utm")
 templates = Jinja2Templates(directory="app/templates")
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
 
 
 def _build_utm_url(base_url: str, utm_source: str, utm_medium: str, utm_campaign: str,

@@ -13,7 +13,7 @@ cd ~/hidalgotech
 bash deploy.sh
 ```
 
-El script comprueba Docker, `.env`, SECRET_KEY, red y levanta Traefik + portal + apps. Si algo falla, muestra el error y qué hacer.
+El script comprueba Docker, `.env`, SECRET_KEY, red y levanta Traefik + las apps. Si algo falla, muestra el error y qué hacer.
 
 ---
 
@@ -46,7 +46,6 @@ Rellena al menos:
 
 - `SECRET_KEY=...` (genera con: `openssl rand -hex 32`)
 - `DEFAULT_ADMIN_PASSWORD=...`
-- `PORTAL_URL=https://hidalgotech.com/`
 - `APP_ENV=production`
 
 ### ¿La red Docker `proxy` existe?
@@ -97,28 +96,27 @@ docker compose up -d --force-recreate
 
 En `traefik.yml` estaba el provider `file` con `directory: /config` pero no se montaba. En el repo ya está quitado. En el servidor, edita `traefik/traefik.yml` y borra el bloque `file:` (las líneas de `file:` y `directory: /config` y `watch: true`). Luego: `cd ~/hidalgotech/traefik && docker compose up -d --force-recreate`.
 
-### Portal / Apps: "unable to open database file" o contenedores en Restarting
+### Apps: "unable to open database file" o contenedores en Restarting
 
 Los contenedores corren como UID 1000 y no pueden escribir en sus carpetas `data`. En el servidor:
 
 ```bash
 cd ~/hidalgotech
-for dir in portal app-tiktok app-instagram app-margen app-moneda app-utm app-qr app-hashtags app-redimensionador app-roi app-pinterest app-transcriber app-costo-unidad; do
+for dir in app-tiktok app-instagram app-margen app-moneda app-utm app-qr app-hashtags app-redimensionador app-roi app-pinterest app-transcriber app-costo-unidad; do
   mkdir -p "$dir/data"
   chown -R 1000:1000 "$dir/data"
 done
 export $(grep -v '^#' .env | xargs)
-docker compose -f portal/docker-compose.yml up -d --build
 # Reiniciar apps que estaban en Restarting
 for app in app-tiktok app-instagram app-margen app-moneda app-utm app-qr app-hashtags app-roi app-pinterest app-transcriber app-costo-unidad; do
   [ -f "$app/docker-compose.yml" ] && docker compose -f "$app/docker-compose.yml" up -d --build
 done
 ```
 
-### "SECRET_KEY no está definida" o portal no arranca
+### "SECRET_KEY no está definida" o las apps no arrancan
 
 - Edita `.env` y pon una SECRET_KEY real (no la por defecto).
-- Vuelve a ejecutar: `cd ~/hidalgotech && export $(grep -v '^#' .env | xargs) && docker compose -f portal/docker-compose.yml up -d --build`
+- Vuelve a ejecutar: `cd ~/hidalgotech && export $(grep -v '^#' .env | xargs) && bash deploy.sh`
 
 ### "network proxy not found"
 
@@ -150,8 +148,8 @@ Si otro proceso usa esos puertos, detén ese servicio o cambia la configuración
 
 ```bash
 docker ps -a
-docker logs portal
 docker logs traefik
+docker logs app-tiktok
 ```
 
 Revisa los logs para ver el error (falta SECRET_KEY, falta .env, etc.).
@@ -186,11 +184,9 @@ Si subes un nuevo ZIP o haces `git pull`:
 ```bash
 cd ~/hidalgotech
 export $(grep -v '^#' .env | xargs)
-docker compose -f portal/docker-compose.yml up -d --build
-# Opcional: reconstruir apps que hayas tocado
-# docker compose -f app-tiktok/docker-compose.yml up -d --build
+bash deploy.sh
 ```
 
 ---
 
-Si el error que ves no está aquí, copia el mensaje exacto de la terminal (o el resultado de `docker logs portal`) para poder afinar el diagnóstico.
+Si el error que ves no está aquí, copia el mensaje exacto de la terminal (o el resultado de `docker logs traefik`) para poder afinar el diagnóstico.

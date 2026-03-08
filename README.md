@@ -131,8 +131,7 @@ _template-app/     # Plantilla para crear nuevas apps
 1. Copia la carpeta `_template-app/` y renómbrala (ej. `app-youtube/`).
 2. En `docker-compose.yml`: cambia `template` por el nombre de tu app en router, middleware, service y `PathPrefix` (ej. `/youtube`).
 3. En `app/main.py`: cambia `root_path="/template"` por `root_path="/youtube"`.
-4. En `portal/app/main.py`: añade una entrada en la lista `apps` del dashboard con la URL y nombre de la app.
-5. Ejecuta `docker compose up -d` en la carpeta de la nueva app. Traefik la detecta automáticamente.
+4. Ejecuta `docker compose up -d` en la carpeta de la nueva app. Traefik la detecta automáticamente.
 
 ## Notas
 

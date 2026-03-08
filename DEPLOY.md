@@ -90,7 +90,6 @@ Crear un archivo `.env` en la raíz del proyecto (no se sube a git):
 # Genera una clave segura: openssl rand -hex 32
 SECRET_KEY=tu_clave_secreta_de_al_menos_32_caracteres_aleatoria
 APP_ENV=production
-PORTAL_URL=https://hidalgotech.com/
 DEFAULT_ADMIN_USER=admin
 DEFAULT_ADMIN_PASSWORD=CambiaEstoPorUnaContraseñaSegura123!
 ```
@@ -109,7 +108,7 @@ docker compose up -d
 cd ..
 ```
 
-### Levantar el portal y las apps
+### Levantar las apps
 
 Cada servicio tiene su propio `docker-compose.yml` con labels de Traefik. Hay que levantar cada uno en el mismo host y con la red `proxy`. Opciones:
 
@@ -120,7 +119,6 @@ Cada servicio tiene su propio `docker-compose.yml` con labels de Traefik. Hay qu
 set -e
 export $(grep -v '^#' .env | xargs)
 
-docker compose -f portal/docker-compose.yml up -d --build
 docker compose -f app-tiktok/docker-compose.yml up -d --build
 docker compose -f app-instagram/docker-compose.yml up -d --build
 docker compose -f app-margen/docker-compose.yml up -d --build
@@ -134,12 +132,11 @@ docker compose -f app-pinterest/docker-compose.yml up -d --build
 docker compose -f app-transcriber/docker-compose.yml up -d --build
 ```
 
-El `portal/docker-compose.yml` ya incluye las variables de entorno. **Importante:** todas las apps (tiktok, instagram, etc.) deben recibir la misma `SECRET_KEY` para validar el JWT del portal. Añade en cada `app-*/docker-compose.yml` de producción:
+**Importante:** todas las apps deben recibir la misma `SECRET_KEY` para validar el JWT. Añade en cada `app-*/docker-compose.yml` de producción:
 
 ```yaml
 environment:
   - SECRET_KEY=${SECRET_KEY}
-  - PORTAL_URL=${PORTAL_URL}
   - APP_ENV=production
 ```
 
@@ -147,7 +144,6 @@ environment:
 
 ```bash
 export $(grep -v '^#' .env | xargs)
-cd portal && docker compose up -d --build && cd ..
 cd app-tiktok && docker compose up -d --build && cd ..
 # ... repetir para cada app
 ```
@@ -159,7 +155,7 @@ cd /home/tu_usuario/hidalgotech
 git pull origin main
 export $(grep -v '^#' .env | xargs)
 # Reconstruir y levantar solo lo que cambió, por ejemplo:
-docker compose -f portal/docker-compose.yml up -d --build
+bash deploy.sh
 ```
 
 ---
@@ -211,8 +207,7 @@ git push origin main
 cd /ruta/hidalgotech
 git pull origin main
 export $(grep -v '^#' .env | xargs)
-# Reconstruir y levantar los servicios que hayas tocado, por ejemplo:
-docker compose -f portal/docker-compose.yml up -d --build
+bash deploy.sh
 ```
 
 **Servidor (primera vez – SSL):**

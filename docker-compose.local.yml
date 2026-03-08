@@ -2,13 +2,11 @@
 # Uso: docker compose -f docker-compose.local.yml up -d --build
 # URLs: 8000 portal | 8001 tiktok | 8002 instagram | 8003 margen | 8004 moneda | 8005 utm | 8006 qr | 8008 hashtags | 8009 redimensionador | 8010 roi | 8011 pinterest | 8012 transcriber
 services:
-  portal:
-    build: ./portal
-    container_name: portal
+  app-portal:
+    build: ./app-portal
+    container_name: app-portal
     ports:
       - "8000:8000"
-    volumes:
-      - ./portal/data:/app/data
     env_file: .env
     environment:
       - APP_ENV=development
@@ -143,4 +141,3 @@ services:
     environment:
       - APP_ENV=development
       - SECRET_KEY=${SECRET_KEY}
-      - PORTAL_URL=http://localhost:8000

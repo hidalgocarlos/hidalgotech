@@ -12,9 +12,8 @@ from .auth import verify_token
 app = FastAPI(root_path="/redimensionador")
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 templates = Jinja2Templates(directory=os.path.join(_APP_DIR, "templates"))
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
 
 # Formatos por red y comunes. group sirve para agrupar en la UI.
 PRESETS = [

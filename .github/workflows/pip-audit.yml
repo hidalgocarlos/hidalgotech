@@ -23,5 +23,5 @@ jobs:
       - name: Install pip-audit
         run: python -m pip install --quiet pip-audit
 
-      - name: Audit dependencies (portal + apps)
+      - name: Audit dependencies (apps)
         run: bash scripts/audit-deps.sh

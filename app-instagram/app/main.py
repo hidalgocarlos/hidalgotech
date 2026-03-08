@@ -163,8 +163,34 @@ async def download(url: str = Form(...), user=Depends(verify_token)):
         if not media:
             return JSONResponse({"error": "No se pudo obtener el video."}, status_code=400)
 
-        # Descargar el video
-        cl.video_download(media_id, filepath)
+        # Descargar el video: preferir video_url (más fiable) y fallback a instagrapi por pk
+        video_url = getattr(media, "video_url", None)
+        if not video_url and getattr(media, "resources", None):
+            for r in media.resources or []:
+                video_url = getattr(r, "video_url", None)
+                if video_url:
+                    break
+
+        if video_url:
+            async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
+                r = await client.get(
+                    video_url,
+                    headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:109.0) Gecko/20100101 Firefox/119.0"},
+                )
+                r.raise_for_status()
+                with open(filepath, "wb") as f:
+                    f.write(r.content)
+        else:
+            media_pk = getattr(media, "pk", None) or getattr(media, "id", None)
+            if media_pk is not None:
+                cl.video_download(media_pk, DOWNLOAD_DIR)
+                # instagrapi guarda con nombre automático; buscar el más reciente y renombrar
+                downloads = [f for f in os.listdir(DOWNLOAD_DIR) if f.endswith(".mp4")]
+                if downloads:
+                    by_mtime = sorted(downloads, key=lambda f: os.path.getmtime(os.path.join(DOWNLOAD_DIR, f)), reverse=True)
+                    os.rename(os.path.join(DOWNLOAD_DIR, by_mtime[0]), filepath)
+            else:
+                return JSONResponse({"error": "No se encontró video para descargar en este enlace."}, status_code=400)
 
         if not os.path.isfile(filepath):
             return JSONResponse({"error": "La descarga no generó ningún archivo. Prueba otro enlace."}, status_code=500)

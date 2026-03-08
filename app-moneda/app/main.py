@@ -12,9 +12,8 @@ TRM_API_URL = "https://co.dolarapi.com/v1/trm"
 
 app = FastAPI(root_path="/moneda")
 templates = Jinja2Templates(directory="app/templates")
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
 
 
 def _format_co(value, decimals=2):

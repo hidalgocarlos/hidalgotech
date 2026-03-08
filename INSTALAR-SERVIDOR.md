@@ -110,7 +110,6 @@ En `.env` pon al menos:
 
 - `SECRET_KEY=...` (genera con: `openssl rand -hex 32`)
 - `DEFAULT_ADMIN_PASSWORD=...`
-- `PORTAL_URL=https://hidalgotech.com/`
 - `APP_ENV=production`
 
 Guarda (Ctrl+O, Enter, Ctrl+X).

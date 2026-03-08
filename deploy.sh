@@ -24,7 +24,7 @@ if [ ! -f "$ROOT/.env" ]; then
   echo "ERROR: No existe .env en la raíz del proyecto."
   echo "  Cópialo: cp $ROOT/.env.example $ROOT/.env"
   echo "  Edítalo: nano $ROOT/.env"
-  echo "  Debe tener al menos: SECRET_KEY=..., DEFAULT_ADMIN_PASSWORD=..., PORTAL_URL=https://hidalgotech.com/"
+  echo "  Debe tener al menos: SECRET_KEY=..., DEFAULT_ADMIN_PASSWORD=..., APP_ENV=production"
   exit 1
 fi
 
@@ -50,8 +50,6 @@ touch "$ROOT/traefik/acme.json"
 chmod 600 "$ROOT/traefik/acme.json"
 
 # 5b. Permisos para data (contenedores corren como UID 1000)
-mkdir -p "$ROOT/portal/data"
-chown -R 1000:1000 "$ROOT/portal/data" 2>/dev/null || true
 for dir in app-tiktok app-instagram app-margen app-moneda app-utm app-qr app-hashtags app-redimensionador app-roi app-pinterest app-transcriber app-costo-unidad; do
   [ -d "$ROOT/$dir" ] && mkdir -p "$ROOT/$dir/data" && chown -R 1000:1000 "$ROOT/$dir/data" 2>/dev/null || true
 done
@@ -62,13 +60,8 @@ cd "$ROOT/traefik"
 docker compose up -d
 cd "$ROOT"
 
-# 7. Levantar portal
-echo "Levantando portal..."
-docker compose -f portal/docker-compose.yml up -d --build
-echo "Portal en marcha (puertos 80/443 vía Traefik)."
-
-# 8. Apps opcionales (descomenta si las usas)
-APPS="app-tiktok app-instagram app-margen app-moneda app-utm app-qr app-hashtags app-redimensionador app-roi app-pinterest app-transcriber app-costo-unidad"
+# 7. Apps
+APPS="app-portal app-tiktok app-instagram app-margen app-moneda app-utm app-qr app-hashtags app-redimensionador app-roi app-pinterest app-transcriber app-costo-unidad"
 for app in $APPS; do
   if [ -f "$ROOT/$app/docker-compose.yml" ]; then
     echo "Levantando $app..."

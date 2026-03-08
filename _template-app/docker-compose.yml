@@ -1,8 +1,7 @@
 # Copy this folder for a new app. Then:
 # 1. Replace "template" with your app name in router/middleware/service names and PathPrefix
 # 2. Update app/main.py root_path to match PathPrefix (e.g. root_path="/myapp")
-# 3. Add the app to portal/app/main.py dashboard apps list
-# 4. docker compose up -d
+# 3. docker compose up -d
 services:
   app-template:
     build: .

@@ -12,9 +12,8 @@ from .dao.qr_dao import QRDAO
 
 app = FastAPI(root_path="/qr")
 templates = Jinja2Templates(directory="app/templates")
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
 
 
 def _make_qr_png(content: str, box_size: int = 8) -> bytes:

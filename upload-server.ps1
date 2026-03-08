@@ -95,4 +95,4 @@ Write-Host "Listo. Proyecto en el servidor: ~/hidalgotech" -ForegroundColor Gree
 Write-Host "En el servidor ejecuta:" -ForegroundColor Cyan
 Write-Host "  cd ~/hidalgotech"
 Write-Host "  sudo bash setup-server.sh   # si es la primera vez (instala Docker, etc.)"
-Write-Host '  # o solo levantar: export $(grep -v "^#" .env | xargs) && cd traefik && docker compose up -d && cd .. && docker compose -f portal/docker-compose.yml up -d --build'
+Write-Host '  # o solo levantar: export $(grep -v "^#" .env | xargs) && bash deploy.sh'

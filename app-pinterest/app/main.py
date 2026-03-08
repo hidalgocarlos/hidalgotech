@@ -13,9 +13,8 @@ from .dao.download_dao import DownloadDAO
 
 app = FastAPI(root_path="/pinterest")
 templates = Jinja2Templates(directory="app/templates")
-_portal = (os.environ.get("PORTAL_URL") or "/").rstrip("/")
-templates.env.globals["portal_url"] = _portal + "/" if _portal != "/" else "/"
-templates.env.globals["favicon_url"] = _portal + "/static/favicon.png"
+templates.env.globals["portal_url"] = "/"
+templates.env.globals["favicon_url"] = "/static/favicon.png"
 
 DOWNLOAD_DIR = "/app/data/downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
