@@ -6,6 +6,9 @@ services:
     env_file:
       - ../.env
     environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DEFAULT_ADMIN_USER=${DEFAULT_ADMIN_USER:-admin}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD}
       - APP_ENV=production
     networks:
       - proxy

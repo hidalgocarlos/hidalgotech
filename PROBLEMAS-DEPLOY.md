@@ -159,6 +159,33 @@ Revisa los logs para ver el error (falta SECRET_KEY, falta .env, etc.).
 - Comprueba DNS: el dominio debe apuntar a la IP del servidor (registro A).
 - Mientras tanto puedes probar por IP: `http://TU_IP/` (HTTPS puede dar error si el certificado es para el dominio).
 
+### Los certificados SSL no se generan (HTTPS no funciona)
+
+1. **acme.json** debe existir y tener permisos 600 (Traefik escribe aquí los certificados):
+   ```bash
+   touch ~/hidalgotech/traefik/acme.json
+   chmod 600 ~/hidalgotech/traefik/acme.json
+   ```
+2. **Puerto 80** debe ser accesible desde internet para el reto HTTP-01 de Let's Encrypt. Comprueba que el firewall permite 80 y 443.
+3. **Dominio**: el registro DNS (A) de `hidalgotech.com` debe apuntar a la IP del servidor.
+4. Tras un cambio en Traefik, reinicia: `cd ~/hidalgotech/traefik && docker compose up -d --force-recreate`
+5. Ver certificados generados: `cat ~/hidalgotech/traefik/acme.json | head -c 500`
+
+### Entro admin y la contraseña pero no inicia sesión (redirige otra vez al login)
+
+En producción (HTTPS) la cookie de sesión debe enviarse con `Secure`. Asegúrate de:
+
+1. En el servidor, que el **portal** recibe las variables de entorno. En la raíz del proyecto, `.env` debe tener:
+   ```bash
+   DEFAULT_ADMIN_USER=admin
+   DEFAULT_ADMIN_PASSWORD=050614
+   SECRET_KEY=tu_clave_larga
+   APP_ENV=production
+   ```
+2. Tras cambiar `.env`, reconstruir el portal:  
+   `docker compose -f ~/hidalgotech/app-portal/docker-compose.yml up -d --build`
+3. Probar en una ventana de incógnito para evitar cookies viejas.
+
 ---
 
 ## 4. Orden recomendado (a mano)

@@ -4,11 +4,8 @@ api:
 entryPoints:
   web:
     address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
+    # Sin redirect aquí para que Let's Encrypt pueda completar el reto HTTP-01 en :80.
+    # El redirect HTTP→HTTPS se hace por router en traefik/dynamic/redirect.yml
   websecure:
     address: ":443"
 
@@ -23,3 +20,6 @@ certificatesResolvers:
 providers:
   docker:
     exposedByDefault: false
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true

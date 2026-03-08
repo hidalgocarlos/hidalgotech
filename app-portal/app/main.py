@@ -66,6 +66,14 @@ async def login(request: Request, username: str = Form(...), password: str = For
     if username == ADMIN_USER and password == ADMIN_PASSWORD:
         token = _create_token(ADMIN_USER)
         response = RedirectResponse(url=redirect_uri, status_code=302)
-        response.set_cookie(key="access_token", value=token, httponly=True, samesite="Lax")
+        secure = os.environ.get("APP_ENV") == "production"
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            samesite="Lax",
+            secure=secure,
+            path="/",
+        )
         return response
     return templates.TemplateResponse("login.html", {"request": request, "error": "Usuario o contraseña incorrectos", "redirect_uri": redirect_uri})
